@@ -1,0 +1,16 @@
+# wrangler.toml
+name = "backend"
+main = "src/index.ts"
+compatibility_date = "2025-03-21"
+
+# Environment variables should be set using wrangler secrets
+# Run: wrangler secret put DATABASE_URL
+# [vars]
+# DATABASE_URL = "your-database-url-here"
+
+[vars]
+DATABASE_URL = "prisma://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlfa2V5IjoiMTY3Y2E5OTUtMmQzNi00YzFiLThmYmUtMzcxMzBlZDgzNGVhIiwidGVuYW50X2lkIjoiNzlmOTljMGI5NWNlNTE3MjE2MTUxMTVlZDExMTdhYWQzZDVhNjFkMDYyMjM1OTQ4OTBjZDdkYWE2NzMwYTJiNCIsImludGVybmFsX3NlY3JldCI6IjAxNDQxMWM1LWY0M2UtNDEwZS04MjljLTNkMjc2Yjk1YzgzZiJ9.irQfreBnu9ZoFEr92mEZj1Dmazg3SO0n5P6Xb4bBKoM"
+DIRECT_URL = "postgresql://mdm-db_owner:npg_pW4Gq2dvNBXM@ep-fancy-pond-a5use75n-pooler.us-east-2.aws.neon.tech/mdm-db?sslmode=require"
+
+[build]
+command = "npm run build" 
