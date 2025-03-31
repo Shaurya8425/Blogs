@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import blogRoutes from "./routes/blogRoutes";
 import authRoutes from "./routes/authRoutes";
+import userRoutes from "./routes/userRoutes";
 
 // Define the type for your environment variables
 type Bindings = {
@@ -61,5 +62,6 @@ app.use("/api/v1/blog", async (c, next) => {
 });
 app.route("/api/v1/blog", blogRoutes);
 app.route("/api/v1", authRoutes);
+app.route("/api/v1/users", userRoutes);
 
 export default app;
