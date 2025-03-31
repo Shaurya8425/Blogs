@@ -20,6 +20,38 @@ export const PostDetail = () => {
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
 
+  const formatDate = (dateString: string | undefined) => {
+    try {
+      if (!dateString) return "N/A";
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "N/A";
+
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+      const diffInMinutes = Math.floor(diffInSeconds / 60);
+      const diffInHours = Math.floor(diffInMinutes / 60);
+
+      if (diffInSeconds < 60) {
+        return "just now";
+      } else if (diffInMinutes < 60) {
+        return `${diffInMinutes} minute${diffInMinutes === 1 ? "" : "s"} ago`;
+      } else if (diffInHours < 24) {
+        return `${diffInHours} hour${diffInHours === 1 ? "" : "s"} ago`;
+      }
+
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "N/A";
+    }
+  };
+
   useEffect(() => {
     const loadPost = async () => {
       try {
@@ -35,6 +67,10 @@ export const PostDetail = () => {
     };
 
     loadPost();
+
+    const pollInterval = setInterval(loadPost, 5000);
+
+    return () => clearInterval(pollInterval);
   }, [id]);
 
   const handleDelete = async () => {
@@ -105,34 +141,6 @@ export const PostDetail = () => {
       );
     } catch (error) {
       console.error("Error deleting reply:", error);
-    }
-  };
-
-  const formatDate = (dateString: string | undefined) => {
-    try {
-      if (!dateString) return "N/A";
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return "N/A";
-
-      const now = new Date();
-      const diffInHours = Math.floor(
-        (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-      );
-
-      if (diffInHours < 24) {
-        return `${diffInHours} hour${diffInHours === 1 ? "" : "s"} ago`;
-      }
-
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "N/A";
     }
   };
 
