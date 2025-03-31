@@ -124,7 +124,7 @@ export const Home = () => {
 
   return (
     <MainLayout>
-      <div className='max-w-4xl mx-auto'>
+      <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='flex justify-between items-center mb-6'>
           <h1 className='text-2xl font-bold text-gray-900'>Blog Posts</h1>
           <button
@@ -144,56 +144,58 @@ export const Home = () => {
                 className='card cursor-pointer hover:shadow-md transition-shadow duration-200'
                 onClick={() => handlePostClick(post.id)}
               >
-                <div className='flex items-center justify-between mb-4'>
+                <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4'>
                   <div className='flex items-center space-x-2'>
-                    <span className='text-sm text-gray-500'>
+                    <span className='text-sm text-gray-500 truncate max-w-[200px]'>
                       {post.author.name || post.author.email}
                     </span>
                     <span className='text-gray-300'>•</span>
-                    <span className='text-sm text-gray-500'>
+                    <span className='text-sm text-gray-500 whitespace-nowrap'>
                       {formatDate(post.createdAt)}
                     </span>
                   </div>
                   {isAuthor && (
                     <div
-                      className='flex items-center space-x-2'
+                      className='flex flex-wrap items-center gap-2'
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <button
-                        className='btn btn-secondary'
-                        onClick={() => navigate(`/edit/${post.id}`)}
-                      >
-                        Edit
-                      </button>
                       {showDeleteConfirm !== post.id ? (
-                        <button
-                          className='btn btn-danger'
-                          onClick={() => setShowDeleteConfirm(post.id)}
-                        >
-                          Delete
-                        </button>
-                      ) : (
                         <>
                           <button
-                            className='btn btn-danger'
+                            className='btn-sm btn-secondary flex-shrink-0 min-w-[60px] text-center'
+                            onClick={() => navigate(`/edit/${post.id}`)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className='btn-sm btn-danger flex-shrink-0 min-w-[60px] text-center'
+                            onClick={() => setShowDeleteConfirm(post.id)}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      ) : (
+                        <div className='flex items-center gap-2 w-full sm:w-auto'>
+                          <button
+                            className='btn-sm btn-danger flex-1 sm:flex-initial text-center min-w-[80px]'
                             onClick={() => handleDelete(post.id)}
                             disabled={isDeleting}
                           >
-                            {isDeleting ? "Deleting..." : "Confirm"}
+                            {isDeleting ? "..." : "Confirm"}
                           </button>
                           <button
-                            className='btn btn-secondary'
+                            className='btn-sm btn-secondary flex-1 sm:flex-initial text-center min-w-[80px]'
                             onClick={() => setShowDeleteConfirm(null)}
                           >
                             Cancel
                           </button>
-                        </>
+                        </div>
                       )}
                     </div>
                   )}
                 </div>
 
-                <h2 className='text-xl font-semibold text-gray-900 mb-2'>
+                <h2 className='text-xl font-semibold text-gray-900 mb-2 line-clamp-2'>
                   {post.title}
                 </h2>
                 <p className='text-gray-600 line-clamp-3'>{post.content}</p>
