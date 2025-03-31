@@ -12,6 +12,7 @@ export const PostDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     const loadPost = async () => {
@@ -40,6 +41,35 @@ export const PostDetail = () => {
       console.error("Error deleting post:", error);
     } finally {
       setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  const formatDate = (dateString: string | undefined) => {
+    try {
+      if (!dateString) return "N/A";
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "N/A";
+
+      const now = new Date();
+      const diffInHours = Math.floor(
+        (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+      );
+
+      if (diffInHours < 24) {
+        return `${diffInHours} hour${diffInHours === 1 ? "" : "s"} ago`;
+      }
+
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "N/A";
     }
   };
 
@@ -72,33 +102,52 @@ export const PostDetail = () => {
 
   return (
     <MainLayout>
-      <div className='max-w-4xl mx-auto'>
+      <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='card'>
-          <div className='flex items-center justify-between mb-6'>
+          <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6'>
             <div className='flex items-center space-x-2'>
-              <span className='text-sm text-gray-500'>
+              <span className='text-sm text-gray-500 truncate max-w-[200px]'>
                 {post.author.name || post.author.email}
               </span>
               <span className='text-gray-300'>•</span>
-              <span className='text-sm text-gray-500'>
-                {new Date(post.createdAt || "").toLocaleDateString()}
+              <span className='text-sm text-gray-500 whitespace-nowrap'>
+                {formatDate(post.createdAt)}
               </span>
             </div>
             {isAuthor && (
-              <div className='flex items-center space-x-2'>
-                <button
-                  className='btn btn-secondary'
-                  onClick={() => navigate(`/edit/${post.id}`)}
-                >
-                  Edit
-                </button>
-                <button
-                  className='btn btn-danger'
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? "Deleting..." : "Delete"}
-                </button>
+              <div className='flex flex-wrap items-center gap-2'>
+                {!showDeleteConfirm ? (
+                  <>
+                    <button
+                      className='btn-sm btn-secondary flex-shrink-0 min-w-[60px] text-center'
+                      onClick={() => navigate(`/edit/${post.id}`)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className='btn-sm btn-danger flex-shrink-0 min-w-[60px] text-center'
+                      onClick={() => setShowDeleteConfirm(true)}
+                    >
+                      Delete
+                    </button>
+                  </>
+                ) : (
+                  <div className='flex items-center gap-2 w-full sm:w-auto'>
+                    <button
+                      className='btn-sm btn-danger flex-1 sm:flex-initial text-center min-w-[80px]'
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? "..." : "Confirm"}
+                    </button>
+                    <button
+                      className='btn-sm btn-secondary flex-1 sm:flex-initial text-center min-w-[80px]'
+                      onClick={() => setShowDeleteConfirm(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
