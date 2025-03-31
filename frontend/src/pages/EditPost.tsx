@@ -54,7 +54,6 @@ export const EditPost = () => {
         content: content.trim(),
       });
       toast.success('Post updated successfully!');
-      navigate(`/profile`);
     } catch (error) {
       console.error("Error updating post:", error);
       toast.error('Failed to update post');
@@ -64,7 +63,7 @@ export const EditPost = () => {
   };
 
   const handleCancel = () => {
-    navigate('/profile');
+    navigate(-1); // Go back to previous page
   };
 
   if (isLoading) {

@@ -3,8 +3,9 @@ import { Post } from "../../services/blog";
 import { useState } from "react";
 import { blogService } from "../../services/blog";
 import { useAuth } from "../../hooks/useAuth";
-import { Card } from "../common/Card";
-import { Button } from "../common/Button";
+import { Card } from "../ui/card";
+import { Button } from "../ui/button";
+import { toast } from "react-hot-toast";
 
 interface PostCardProps {
   post: Post;
@@ -54,8 +55,10 @@ export const PostCard = ({ post, onDelete, onUpvote }: PostCardProps) => {
       setIsDeleting(true);
       await blogService.deletePost(post.id);
       onDelete?.(post.id);
+      toast.success('Post deleted successfully');
     } catch (error) {
-      // Silently handle delete errors
+      console.error("Error deleting post:", error);
+      toast.error('Failed to delete post');
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
@@ -101,46 +104,41 @@ export const PostCard = ({ post, onDelete, onUpvote }: PostCardProps) => {
             {hasUpvoted ? "Upvoted" : "Upvote"} ({post.upvotes.length})
           </Button>
           {isAuthor && (
-            <div className='flex items-center space-x-2'>
-              <Button
-                variant='secondary'
-                onClick={() => navigate(`/edit/${post.id}`)}
-              >
-                Edit
-              </Button>
-              {!showDeleteConfirm ? (
-                <Button
-                  variant='danger'
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  Delete
-                </Button>
-              ) : (
+            <div className="flex items-center gap-2">
+              <Link to={`/edit/${post.id}`}>
+                <Button variant="secondary">Edit</Button>
+              </Link>
+              {showDeleteConfirm ? (
                 <>
                   <Button
-                    variant='danger'
+                    variant="danger"
                     onClick={handleDelete}
-                    isLoading={isDeleting}
+                    disabled={isDeleting}
                   >
-                    Confirm
+                    {isDeleting ? "Deleting..." : "Confirm Delete"}
                   </Button>
                   <Button
-                    variant='secondary'
+                    variant="secondary"
                     onClick={() => setShowDeleteConfirm(false)}
                   >
                     Cancel
                   </Button>
                 </>
+              ) : (
+                <Button
+                  variant="danger"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  Delete
+                </Button>
               )}
             </div>
           )}
         </div>
       </div>
       <Link to={`/post/${post.id}`}>
-        <h2 className='text-xl font-semibold text-gray-900 mb-2 hover:text-blue-600'>
-          {post.title}
-        </h2>
-        <p className='text-gray-600 line-clamp-3'>{post.content}</p>
+        <h2 className='text-xl font-semibold mb-2'>{post.title}</h2>
+        <p className='text-gray-600'>{post.content}</p>
       </Link>
     </Card>
   );

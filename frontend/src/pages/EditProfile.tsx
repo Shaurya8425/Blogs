@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "../components/layout/MainLayout";
 import { useAuth } from "../hooks/useAuth";
-import { Button } from "../components/common/Button";
-import { Input } from "../components/common/Input";
-import { ErrorMessage } from "../components/common/ErrorMessage";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { toast } from "react-hot-toast";
 import { blogService } from "../services/blog";
 
 export const EditProfile = () => {
@@ -40,12 +41,18 @@ export const EditProfile = () => {
       setIsSaving(true);
       setError(null);
       await blogService.updateUserProfile(user.userId, { name });
-      navigate(`/profile/${user.userId}`);
+      toast.success('Profile updated successfully');
     } catch (err: any) {
-      setError(err.message || "Failed to update profile");
+      const errorMessage = err.message || "Failed to update profile";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleCancel = () => {
+    navigate(-1); // Go back to previous page
   };
 
   if (isLoading) {
@@ -68,8 +75,9 @@ export const EditProfile = () => {
 
           <form onSubmit={handleSubmit} className='space-y-6'>
             <div>
+              <Label htmlFor="name">Name</Label>
               <Input
-                label='Name'
+                id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder='Your name'
@@ -77,13 +85,13 @@ export const EditProfile = () => {
               />
             </div>
 
-            {error && <ErrorMessage message={error} />}
+            {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
 
             <div className='flex justify-end gap-4'>
               <Button
                 type='button'
                 variant='secondary'
-                onClick={() => navigate(`/profile/${user?.userId}`)}
+                onClick={handleCancel}
                 disabled={isSaving}
               >
                 Cancel

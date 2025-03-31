@@ -95,6 +95,22 @@ export const PostDetail = () => {
     }
   };
 
+  const handleDeleteReply = async (replyId: string) => {
+    if (!post) return;
+    
+    try {
+      await blogService.deleteReply(post.id, replyId);
+      setPost({
+        ...post,
+        replies: post.replies.filter(r => r.id !== replyId)
+      });
+      toast.success('Reply deleted successfully');
+    } catch (error) {
+      console.error("Error deleting reply:", error);
+      toast.error('Failed to delete reply');
+    }
+  };
+
   if (isLoading || !post) {
     return (
       <MainLayout>
@@ -199,14 +215,26 @@ export const PostDetail = () => {
               {post.replies.map((reply) => (
                 <Card key={reply.id} className="p-4">
                   <div className="flex justify-between items-start mb-2">
-                    <span className="font-medium">{reply.user?.name || reply.user?.email}</span>
-                    <span className="text-sm text-gray-500">
-                      {reply.createdAt ? new Date(reply.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      }) : 'No date'}
-                    </span>
+                    <div>
+                      <span className="font-medium">{reply.user?.name || reply.user?.email}</span>
+                      <span className="text-gray-500 text-sm ml-2">
+                        {reply.createdAt ? new Date(reply.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        }) : 'No date'}
+                      </span>
+                    </div>
+                    {user?.userId === reply.user?.id && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleDeleteReply(reply.id)}
+                      >
+                        Delete
+                      </Button>
+                    )}
                   </div>
                   <p className="text-gray-700">{reply.content}</p>
                 </Card>
