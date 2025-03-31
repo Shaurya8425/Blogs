@@ -93,16 +93,39 @@ export const PostDetail = () => {
       const hasUpvoted = post.upvotes.some(
         (upvote) => upvote.userId === user.userId
       );
+
+      // Optimistically update the UI
+      setPost((prev) => {
+        if (!prev) return null;
+        const newUpvotes = hasUpvoted
+          ? prev.upvotes.filter((upvote) => upvote.userId !== user.userId)
+          : [
+              ...prev.upvotes,
+              {
+                id: "temp",
+                createdAt: new Date().toISOString(),
+                userId: user.userId,
+                postId: prev.id,
+              },
+            ];
+        return { ...prev, upvotes: newUpvotes };
+      });
+
+      // Make the API call in the background
       if (hasUpvoted) {
         await blogService.removeUpvote(post.id);
       } else {
         await blogService.upvotePost(post.id);
       }
-      // Reload post to get updated upvotes
+
+      // Fetch the updated post to ensure consistency
       const updatedPost = await blogService.getPostById(post.id);
       setPost(updatedPost);
     } catch (error) {
       console.error("Error handling upvote:", error);
+      // Revert the optimistic update on error
+      const updatedPost = await blogService.getPostById(post.id);
+      setPost(updatedPost);
     }
   };
 

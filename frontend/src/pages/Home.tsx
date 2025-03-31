@@ -90,17 +90,42 @@ export const Home = () => {
         .find((p) => p.id === postId)
         ?.upvotes.some((upvote) => upvote.userId === user?.userId);
 
+      // Optimistically update the UI
+      setPosts(
+        posts.map((post) => {
+          if (post.id === postId) {
+            const newUpvotes = hasUpvoted
+              ? post.upvotes.filter((upvote) => upvote.userId !== user?.userId)
+              : [
+                  ...post.upvotes,
+                  {
+                    id: "temp",
+                    createdAt: new Date().toISOString(),
+                    userId: user?.userId || "",
+                    postId,
+                  },
+                ];
+            return { ...post, upvotes: newUpvotes };
+          }
+          return post;
+        })
+      );
+
+      // Make the API call in the background
       if (hasUpvoted) {
         await blogService.removeUpvote(postId);
       } else {
         await blogService.upvotePost(postId);
       }
 
-      // Fetch the updated post
+      // Fetch the updated post to ensure consistency
       const updatedPost = await blogService.getPostById(postId);
       setPosts(posts.map((post) => (post.id === postId ? updatedPost : post)));
     } catch (error) {
       console.error("Error updating upvote:", error);
+      // Revert the optimistic update on error
+      const updatedPost = await blogService.getPostById(postId);
+      setPosts(posts.map((post) => (post.id === postId ? updatedPost : post)));
     }
   };
 
@@ -148,12 +173,9 @@ export const Home = () => {
       <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='flex justify-between items-center mb-6'>
           <h1 className='text-2xl font-bold text-gray-900'>Blog Posts</h1>
-          <button
-            className='btn btn-primary'
-            onClick={() => navigate("/create")}
-          >
+          <Button variant='primary' onClick={() => navigate("/create")}>
             Create New Post
-          </button>
+          </Button>
         </div>
 
         <div className='space-y-6'>
