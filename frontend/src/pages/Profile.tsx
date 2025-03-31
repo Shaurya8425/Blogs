@@ -31,12 +31,18 @@ export function Profile() {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        if (!userId) return;
-        const userPosts = await blogService.getUserPosts(userId);
+        // If no userId is provided in URL, use the logged-in user's ID
+        const targetUserId = userId || user?.userId;
+        if (!targetUserId) {
+          setError("No user found");
+          return;
+        }
+
+        const userPosts = await blogService.getUserPosts(targetUserId);
         setPosts(userPosts);
 
         // Get user profile data
-        const userData = await blogService.getUserProfile(userId);
+        const userData = await blogService.getUserProfile(targetUserId);
         setProfileUser(userData);
         setName(userData.name || "");
       } catch (err: any) {
@@ -48,7 +54,7 @@ export function Profile() {
     };
 
     loadProfile();
-  }, [userId]);
+  }, [userId, user?.userId]);
 
   const formatDate = (dateString: string | undefined) => {
     try {
