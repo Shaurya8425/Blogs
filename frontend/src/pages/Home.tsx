@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Post, blogService } from "../services/blog";
 import { MainLayout } from "../components/layout/MainLayout";
 import { useAuth } from "../hooks/useAuth";
+import { Button } from "../components/common/Button";
 
 export const Home = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -83,6 +84,26 @@ export const Home = () => {
     navigate(`/post/${postId}`);
   };
 
+  const handleUpvote = async (postId: string) => {
+    try {
+      const hasUpvoted = posts
+        .find((p) => p.id === postId)
+        ?.upvotes.some((upvote) => upvote.userId === user?.userId);
+
+      if (hasUpvoted) {
+        await blogService.removeUpvote(postId);
+      } else {
+        await blogService.upvotePost(postId);
+      }
+
+      // Fetch the updated post
+      const updatedPost = await blogService.getPostById(postId);
+      setPosts(posts.map((post) => (post.id === postId ? updatedPost : post)));
+    } catch (error) {
+      console.error("Error updating upvote:", error);
+    }
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -154,48 +175,79 @@ export const Home = () => {
                       {formatDate(post.createdAt)}
                     </span>
                   </div>
-                  {isAuthor && (
-                    <div
-                      className='flex flex-wrap items-center gap-2'
-                      onClick={(e) => e.stopPropagation()}
+                  <div className='flex items-center gap-4'>
+                    <Button
+                      variant={
+                        post.upvotes.some(
+                          (upvote) => upvote.userId === user?.userId
+                        )
+                          ? "primary"
+                          : "secondary"
+                      }
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        handleUpvote(post.id);
+                      }}
+                      disabled={!user}
                     >
-                      {showDeleteConfirm !== post.id ? (
-                        <>
-                          <button
-                            className='btn-sm btn-secondary flex-shrink-0 min-w-[60px] text-center'
-                            onClick={() => navigate(`/edit/${post.id}`)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className='btn-sm btn-danger flex-shrink-0 min-w-[60px] text-center'
-                            onClick={() => setShowDeleteConfirm(post.id)}
-                          >
-                            Delete
-                          </button>
-                        </>
-                      ) : (
-                        <div className='flex items-center gap-2 w-full sm:w-auto'>
-                          <button
-                            className='btn-sm btn-danger flex-1 sm:flex-initial text-center min-w-[80px]'
-                            onClick={() => handleDelete(post.id)}
-                            disabled={isDeleting}
-                          >
-                            {isDeleting ? "..." : "Confirm"}
-                          </button>
-                          <button
-                            className='btn-sm btn-secondary flex-1 sm:flex-initial text-center min-w-[80px]'
-                            onClick={() => setShowDeleteConfirm(null)}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                      {post.upvotes.some(
+                        (upvote) => upvote.userId === user?.userId
+                      )
+                        ? "Upvoted"
+                        : "Upvote"}{" "}
+                      ({post.upvotes.length})
+                    </Button>
+                    {isAuthor && (
+                      <div className='flex items-center gap-2'>
+                        {!showDeleteConfirm ? (
+                          <>
+                            <Button
+                              variant='secondary'
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                navigate(`/edit/${post.id}`);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant='danger'
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                setShowDeleteConfirm(post.id);
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          </>
+                        ) : (
+                          <div className='flex items-center gap-2'>
+                            <Button
+                              variant='danger'
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                handleDelete(post.id);
+                              }}
+                              isLoading={isDeleting}
+                            >
+                              {isDeleting ? "..." : "Confirm"}
+                            </Button>
+                            <Button
+                              variant='secondary'
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                setShowDeleteConfirm(null);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-
-                <h2 className='text-xl font-semibold text-gray-900 mb-2 line-clamp-2'>
+                <h2 className='text-xl font-semibold text-gray-900 mb-2 hover:text-blue-600'>
                   {post.title}
                 </h2>
                 <p className='text-gray-600 line-clamp-3'>{post.content}</p>

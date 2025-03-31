@@ -3,6 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Post, blogService } from "../services/blog";
 import { MainLayout } from "../components/layout/MainLayout";
 import { useAuth } from "../hooks/useAuth";
+import { Button } from "../components/common/Button";
+import { TextArea } from "../components/common/TextArea";
+import { ErrorMessage } from "../components/common/ErrorMessage";
 
 export const PostDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +16,9 @@ export const PostDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [replyContent, setReplyContent] = useState("");
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPost = async () => {
@@ -42,6 +48,63 @@ export const PostDetail = () => {
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleUpvote = async () => {
+    if (!post || !user) return;
+    try {
+      const hasUpvoted = post.upvotes.some(
+        (upvote) => upvote.userId === user.userId
+      );
+      if (hasUpvoted) {
+        await blogService.removeUpvote(post.id);
+      } else {
+        await blogService.upvotePost(post.id);
+      }
+      // Reload post to get updated upvotes
+      const updatedPost = await blogService.getPostById(post.id);
+      setPost(updatedPost);
+    } catch (error) {
+      console.error("Error handling upvote:", error);
+    }
+  };
+
+  const handleReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!post || !user || !replyContent.trim()) return;
+
+    try {
+      setIsSubmittingReply(true);
+      setReplyError(null);
+      const newReply = await blogService.addReply(post.id, {
+        content: replyContent,
+      });
+      setPost((prev) =>
+        prev ? { ...prev, replies: [...prev.replies, newReply] } : null
+      );
+      setReplyContent("");
+    } catch (err: any) {
+      setReplyError(err.message || "Failed to add reply");
+    } finally {
+      setIsSubmittingReply(false);
+    }
+  };
+
+  const handleDeleteReply = async (replyId: string) => {
+    if (!post) return;
+    try {
+      await blogService.deleteReply(post.id, replyId);
+      setPost((prev) =>
+        prev
+          ? {
+              ...prev,
+              replies: prev.replies.filter((reply) => reply.id !== replyId),
+            }
+          : null
+      );
+    } catch (error) {
+      console.error("Error deleting reply:", error);
     }
   };
 
@@ -99,6 +162,9 @@ export const PostDetail = () => {
   }
 
   const isAuthor = user?.userId === post.author.id;
+  const hasUpvoted = post.upvotes.some(
+    (upvote) => upvote.userId === user?.userId
+  );
 
   return (
     <MainLayout>
@@ -114,49 +180,127 @@ export const PostDetail = () => {
                 {formatDate(post.createdAt)}
               </span>
             </div>
-            {isAuthor && (
-              <div className='flex flex-wrap items-center gap-2'>
-                {!showDeleteConfirm ? (
-                  <>
-                    <button
-                      className='btn-sm btn-secondary flex-shrink-0 min-w-[60px] text-center'
-                      onClick={() => navigate(`/edit/${post.id}`)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className='btn-sm btn-danger flex-shrink-0 min-w-[60px] text-center'
-                      onClick={() => setShowDeleteConfirm(true)}
-                    >
-                      Delete
-                    </button>
-                  </>
-                ) : (
-                  <div className='flex items-center gap-2 w-full sm:w-auto'>
-                    <button
-                      className='btn-sm btn-danger flex-1 sm:flex-initial text-center min-w-[80px]'
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                    >
-                      {isDeleting ? "..." : "Confirm"}
-                    </button>
-                    <button
-                      className='btn-sm btn-secondary flex-1 sm:flex-initial text-center min-w-[80px]'
-                      onClick={() => setShowDeleteConfirm(false)}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+            <div className='flex items-center gap-4'>
+              <Button
+                variant={hasUpvoted ? "primary" : "secondary"}
+                onClick={handleUpvote}
+                disabled={!user}
+              >
+                {hasUpvoted ? "Upvoted" : "Upvote"} ({post.upvotes.length})
+              </Button>
+              {isAuthor && (
+                <div className='flex items-center gap-2'>
+                  {!showDeleteConfirm ? (
+                    <>
+                      <Button
+                        variant='secondary'
+                        onClick={() => navigate(`/edit/${post.id}`)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant='danger'
+                        onClick={() => setShowDeleteConfirm(true)}
+                      >
+                        Delete
+                      </Button>
+                    </>
+                  ) : (
+                    <div className='flex items-center gap-2'>
+                      <Button
+                        variant='danger'
+                        onClick={handleDelete}
+                        isLoading={isDeleting}
+                      >
+                        {isDeleting ? "..." : "Confirm"}
+                      </Button>
+                      <Button
+                        variant='secondary'
+                        onClick={() => setShowDeleteConfirm(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          <h1 className='text-4xl font-bold text-gray-900 mb-6'>
-            {post.title}
-          </h1>
-          <div className='prose max-w-none'>
-            <p className='text-gray-700 whitespace-pre-wrap'>{post.content}</p>
+          <h1 className='text-3xl font-bold mb-4'>{post.title}</h1>
+          <div className='prose max-w-none mb-8'>{post.content}</div>
+
+          {/* Replies Section */}
+          <div className='mt-8 border-t pt-6'>
+            <h2 className='text-xl font-semibold mb-4'>Replies</h2>
+
+            {/* Reply Form */}
+            {user && (
+              <form onSubmit={handleReply} className='mb-6'>
+                <TextArea
+                  label='Add a reply'
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder='Write your reply...'
+                  disabled={isSubmittingReply}
+                  className='mb-2'
+                />
+                {replyError && (
+                  <ErrorMessage message={replyError} className='mb-2' />
+                )}
+                <Button
+                  type='submit'
+                  variant='primary'
+                  isLoading={isSubmittingReply}
+                  disabled={!replyContent.trim()}
+                >
+                  {isSubmittingReply ? "Posting..." : "Post Reply"}
+                </Button>
+              </form>
+            )}
+
+            {/* Replies List */}
+            <div className='space-y-4'>
+              {[...post.replies]
+                .sort(
+                  (a, b) =>
+                    new Date(b.createdAt).getTime() -
+                    new Date(a.createdAt).getTime()
+                )
+                .map((reply) => (
+                  <div
+                    key={reply.id}
+                    className='bg-gray-50 rounded-lg p-4 border border-gray-100'
+                  >
+                    <div className='flex justify-between items-start mb-2'>
+                      <div className='flex items-center space-x-2'>
+                        <span className='font-medium'>
+                          {reply.user.name || reply.user.email}
+                        </span>
+                        <span className='text-sm text-gray-500'>
+                          {formatDate(reply.createdAt)}
+                        </span>
+                      </div>
+                      {(user?.userId === reply.user.id ||
+                        user?.userId === post.author.id) && (
+                        <Button
+                          variant='danger'
+                          onClick={() => handleDeleteReply(reply.id)}
+                          className='text-sm py-1'
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                    <p className='text-gray-700'>{reply.content}</p>
+                  </div>
+                ))}
+              {post.replies.length === 0 && (
+                <p className='text-gray-500 text-center py-4'>
+                  No replies yet. Be the first to reply!
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

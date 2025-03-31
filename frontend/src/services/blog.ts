@@ -1,5 +1,24 @@
 import { api } from "./api";
 
+export interface Reply {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
+}
+
+export interface Upvote {
+  id: string;
+  createdAt: string;
+  userId: string;
+  postId: string;
+}
+
 export interface Post {
   id: string;
   title: string;
@@ -11,10 +30,16 @@ export interface Post {
     email: string;
     name: string | null;
   };
+  upvotes: Upvote[];
+  replies: Reply[];
 }
 
 export interface CreatePostData {
   title: string;
+  content: string;
+}
+
+export interface CreateReplyData {
   content: string;
 }
 
@@ -58,5 +83,29 @@ export const blogService = {
 
   deletePost: async (id: string): Promise<void> => {
     await api.delete(`/blog/${id}`);
+  },
+
+  upvotePost: async (postId: string): Promise<Upvote> => {
+    const response = await api.post<Upvote>(`/blog/${postId}/upvote`, {});
+    if (!response.data) {
+      throw new Error("Failed to upvote post");
+    }
+    return response.data;
+  },
+
+  removeUpvote: async (postId: string): Promise<void> => {
+    await api.delete(`/blog/${postId}/upvote`);
+  },
+
+  addReply: async (postId: string, data: CreateReplyData): Promise<Reply> => {
+    const response = await api.post<Reply>(`/blog/${postId}/replies`, data);
+    if (!response.data) {
+      throw new Error("Failed to add reply");
+    }
+    return response.data;
+  },
+
+  deleteReply: async (postId: string, replyId: string): Promise<void> => {
+    await api.delete(`/blog/${postId}/replies/${replyId}`);
   },
 };

@@ -9,14 +9,18 @@ import { Button } from "../common/Button";
 interface PostCardProps {
   post: Post;
   onDelete?: (postId: string) => void;
+  onUpvote?: (postId: string) => void;
 }
 
-export const PostCard = ({ post, onDelete }: PostCardProps) => {
+export const PostCard = ({ post, onDelete, onUpvote }: PostCardProps) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const isAuthor = user?.userId === post.author.id;
+  const hasUpvoted = post.upvotes.some(
+    (upvote) => upvote.userId === user?.userId
+  );
 
   const formatDate = (dateString: string | undefined) => {
     try {
@@ -58,6 +62,24 @@ export const PostCard = ({ post, onDelete }: PostCardProps) => {
     }
   };
 
+  const handleUpvote = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation when clicking upvote
+    if (!user) return;
+    try {
+      const hasUpvoted = post.upvotes.some(
+        (upvote) => upvote.userId === user.userId
+      );
+      if (hasUpvoted) {
+        await blogService.removeUpvote(post.id);
+      } else {
+        await blogService.upvotePost(post.id);
+      }
+      onUpvote?.(post.id);
+    } catch (error) {
+      console.error("Error handling upvote:", error);
+    }
+  };
+
   return (
     <Card className='hover:shadow-lg transition-shadow duration-200'>
       <div className='flex items-center justify-between mb-2'>
@@ -70,40 +92,49 @@ export const PostCard = ({ post, onDelete }: PostCardProps) => {
             {formatDate(post.createdAt)}
           </span>
         </div>
-        {isAuthor && (
-          <div className='flex items-center space-x-2'>
-            <Button
-              variant='secondary'
-              onClick={() => navigate(`/edit/${post.id}`)}
-            >
-              Edit
-            </Button>
-            {!showDeleteConfirm ? (
+        <div className='flex items-center gap-4'>
+          <Button
+            variant={hasUpvoted ? "primary" : "secondary"}
+            onClick={handleUpvote}
+            disabled={!user}
+          >
+            {hasUpvoted ? "Upvoted" : "Upvote"} ({post.upvotes.length})
+          </Button>
+          {isAuthor && (
+            <div className='flex items-center space-x-2'>
               <Button
-                variant='danger'
-                onClick={() => setShowDeleteConfirm(true)}
+                variant='secondary'
+                onClick={() => navigate(`/edit/${post.id}`)}
               >
-                Delete
+                Edit
               </Button>
-            ) : (
-              <>
+              {!showDeleteConfirm ? (
                 <Button
                   variant='danger'
-                  onClick={handleDelete}
-                  isLoading={isDeleting}
+                  onClick={() => setShowDeleteConfirm(true)}
                 >
-                  Confirm
+                  Delete
                 </Button>
-                <Button
-                  variant='secondary'
-                  onClick={() => setShowDeleteConfirm(false)}
-                >
-                  Cancel
-                </Button>
-              </>
-            )}
-          </div>
-        )}
+              ) : (
+                <>
+                  <Button
+                    variant='danger'
+                    onClick={handleDelete}
+                    isLoading={isDeleting}
+                  >
+                    Confirm
+                  </Button>
+                  <Button
+                    variant='secondary'
+                    onClick={() => setShowDeleteConfirm(false)}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
       <Link to={`/post/${post.id}`}>
         <h2 className='text-xl font-semibold text-gray-900 mb-2 hover:text-blue-600'>
