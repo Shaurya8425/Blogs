@@ -1,13 +1,14 @@
 import { ApiResponse } from "../types/api";
 
-// Use local backend URL for development
-const BASE_URL = "http://localhost:8787/api/v1";
+// Use environment variable for backend URL
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 export const api = {
   get: async <T>(endpoint: string): Promise<ApiResponse<T>> => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${BASE_URL}${endpoint}`, {
+        mode: "cors",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -16,7 +17,10 @@ export const api = {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.message || `HTTP error! status: ${response.status}`
+        );
       }
 
       const data = await response.json();
@@ -32,16 +36,21 @@ export const api = {
       const token = localStorage.getItem("token");
       const response = await fetch(`${BASE_URL}${endpoint}`, {
         method: "POST",
+        mode: "cors",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
           ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify(body),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.message || `HTTP error! status: ${response.status}`
+        );
       }
 
       const data = await response.json();

@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, ReactNode } from "react";
-import { authService, User } from "../services/auth";
+import { authService } from "../services/auth";
 
 interface JWTPayload {
   userId: string;

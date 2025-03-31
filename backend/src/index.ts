@@ -23,12 +23,20 @@ app.use(
       "http://127.0.0.1:5175",
       "http://localhost:5176",
       "http://127.0.0.1:5176",
+      "http://localhost:5177",
+      "http://127.0.0.1:5177",
       "https://backend.shaurya-y321.workers.dev",
+      "https://medium-clone-frontend.vercel.app", // Add your Vercel deployment URL when you have it
     ],
     allowMethods: ["POST", "GET", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+    ],
     exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
-    maxAge: 600,
+    maxAge: 86400,
     credentials: true,
   })
 );
