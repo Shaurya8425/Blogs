@@ -43,6 +43,18 @@ export interface CreateReplyData {
   content: string;
 }
 
+export interface UserProfile {
+  id: string;
+  name: string | null;
+  email: string;
+}
+
+export interface UpdateProfileData {
+  name?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
 export const blogService = {
   getAllPosts: async (): Promise<Post[]> => {
     const response = await api.get<Post[]>("/blog");
@@ -107,5 +119,32 @@ export const blogService = {
 
   deleteReply: async (postId: string, replyId: string): Promise<void> => {
     await api.delete(`/blog/${postId}/replies/${replyId}`);
+  },
+
+  getUserProfile: async (userId: string): Promise<UserProfile> => {
+    const response = await api.get<UserProfile>(`/users/${userId}`);
+    if (!response.data) {
+      throw new Error("Failed to fetch user profile");
+    }
+    return response.data;
+  },
+
+  updateUserProfile: async (
+    userId: string,
+    data: UpdateProfileData
+  ): Promise<UserProfile> => {
+    const response = await api.put<UserProfile>(`/users/${userId}`, data);
+    if (!response.data) {
+      throw new Error("Failed to update user profile");
+    }
+    return response.data;
+  },
+
+  getUserPosts: async (userId: string): Promise<Post[]> => {
+    const response = await api.get<Post[]>(`/users/${userId}/posts`);
+    if (!response.data) {
+      throw new Error("Failed to fetch user posts");
+    }
+    return response.data;
   },
 };

@@ -1,55 +1,16 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Login } from "./pages/Login";
-import { Signup } from "./pages/Signup";
-import { Home } from "./pages/Home";
-import { CreatePost } from "./pages/CreatePost";
-import { EditPost } from "./pages/EditPost";
-import { PostDetail } from "./pages/PostDetail";
-import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { BrowserRouter as Router } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { AppRoutes } from "./AppRoutes";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path='/login' element={<Login />} />
-          <Route path='/signup' element={<Signup />} />
-          <Route
-            path='/'
-            element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path='/create'
-            element={
-              <ProtectedRoute>
-                <CreatePost />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path='/edit/:id'
-            element={
-              <ProtectedRoute>
-                <EditPost />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path='/post/:id'
-            element={
-              <ProtectedRoute>
-                <PostDetail />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <AppRoutes />
+        <Toaster position='top-right' />
+      </AuthProvider>
+    </Router>
   );
 }
 
