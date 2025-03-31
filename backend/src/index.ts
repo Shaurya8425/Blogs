@@ -28,10 +28,10 @@ app.use(
       "http://127.0.0.1:5177",
       // Backend URL
       "https://backend.shaurya-y321.workers.dev",
-      // Vercel deployment URLs
-      "https://13-1-medium.vercel.app",
-      "https://13-1-medium-git-main-shauryay321-gmailcoms-projects.vercel.app",
-      "https://13-1-medium-o9sytor0t-shauryay321-gmailcoms-projects.vercel.app",
+      // New Vercel deployment URLs
+      "https://blogs-pi-taupe.vercel.app",
+      "https://blogs-shauryay321-gmailcoms-projects.vercel.app",
+      "https://blogs-git-main-shauryay321-gmailcoms-projects.vercel.app",
     ],
     allowMethods: ["POST", "GET", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: [

@@ -15,20 +15,27 @@ export const Home = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const data = await blogService.getAllPosts();
-        setPosts(data);
-      } catch (err: any) {
-        console.error("Error fetching posts:", err);
-        setError(err.message || "Failed to fetch posts");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchPosts = async () => {
+    try {
+      const data = await blogService.getAllPosts();
+      setPosts(data);
+    } catch (err: any) {
+      console.error("Error fetching posts:", err);
+      setError(err.message || "Failed to fetch posts");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
+    // Initial fetch
     fetchPosts();
+
+    // Set up polling every 5 seconds
+    const pollInterval = setInterval(fetchPosts, 5000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(pollInterval);
   }, []);
 
   const handleDelete = async (postId: string) => {
