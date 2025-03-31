@@ -15,6 +15,7 @@ app.use(
   "/*",
   cors({
     origin: [
+      // Local development URLs
       "http://localhost:5173",
       "http://127.0.0.1:5173",
       "http://localhost:5174",
@@ -25,8 +26,12 @@ app.use(
       "http://127.0.0.1:5176",
       "http://localhost:5177",
       "http://127.0.0.1:5177",
+      // Backend URL
       "https://backend.shaurya-y321.workers.dev",
-      "https://medium-clone-frontend.vercel.app", // Add your Vercel deployment URL when you have it
+      // Vercel deployment URLs
+      "https://13-1-medium.vercel.app",
+      "https://13-1-medium-git-main-shauryay321-gmailcoms-projects.vercel.app",
+      "https://13-1-medium-o9sytor0t-shauryay321-gmailcoms-projects.vercel.app",
     ],
     allowMethods: ["POST", "GET", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: [

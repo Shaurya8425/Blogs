@@ -25,7 +25,7 @@ export const Navbar = () => {
           <div className='flex'>
             <Link to='/' className='flex items-center'>
               <span className='text-xl font-bold text-gray-900'>
-                Medium Clone
+                sForStudy Blogs
               </span>
             </Link>
           </div>
@@ -48,7 +48,7 @@ export const Navbar = () => {
                   to='/create'
                   className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700'
                 >
-                  Write A Blog
+                  Write A Story
                 </Link>
                 <button
                   onClick={handleLogout}
