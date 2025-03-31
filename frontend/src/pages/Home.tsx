@@ -1,168 +1,119 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Post, blogService } from "../services/blog";
 import { MainLayout } from "../components/layout/MainLayout";
 import { useAuth } from "../hooks/useAuth";
-import { Button } from "../components/common/Button";
+import { Button } from "../components/ui/button";
+import { DeleteConfirmation } from "../components/common/DeleteConfirmation";
+import { ThumbsUp } from "lucide-react";
+import { Card } from "../components/ui/card";
 
 export const Home = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
-    null
-  );
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    fetchPosts();
+  }, [currentPage]);
+
   const fetchPosts = async () => {
     try {
-      const data = await blogService.getAllPosts();
-      setPosts(data);
-    } catch (err: any) {
-      console.error("Error fetching posts:", err);
-      setError(err.message || "Failed to fetch posts");
+      const response = await blogService.getAllPosts();
+      setPosts(response);
+      setTotalPages(Math.ceil(response.length / 10));
+    } catch (error) {
+      console.error("Error fetching posts:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    // Initial fetch
-    fetchPosts();
-
-    // Set up polling every 5 seconds
-    const pollInterval = setInterval(fetchPosts, 5000);
-
-    // Cleanup interval on component unmount
-    return () => clearInterval(pollInterval);
-  }, []);
-
-  const handleDelete = async (postId: string) => {
-    try {
-      setIsDeleting(true);
-      await blogService.deletePost(postId);
-      setPosts(posts.filter((post) => post.id !== postId));
-    } catch (error) {
-      console.error("Error deleting post:", error);
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteConfirm(null);
-    }
-  };
-
-  const formatDate = (dateString: string | undefined) => {
-    try {
-      if (!dateString) return "N/A";
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return "N/A";
-
-      const now = new Date();
-      const diffInHours = Math.floor(
-        (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-      );
-
-      if (diffInHours < 24) {
-        return `${diffInHours} hour${diffInHours === 1 ? "" : "s"} ago`;
-      }
-
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "N/A";
-    }
-  };
-
-  const handlePostClick = (postId: string) => {
-    navigate(`/post/${postId}`);
-  };
-
   const handleUpvote = async (postId: string) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
     try {
-      const hasUpvoted = posts
-        .find((p) => p.id === postId)
-        ?.upvotes.some((upvote) => upvote.userId === user?.userId);
+      const post = posts.find(p => p.id === postId);
+      if (!post) return;
 
-      // Optimistically update the UI
-      setPosts(
-        posts.map((post) => {
-          if (post.id === postId) {
-            const newUpvotes = hasUpvoted
-              ? post.upvotes.filter((upvote) => upvote.userId !== user?.userId)
-              : [
-                  ...post.upvotes,
-                  {
-                    id: "temp",
-                    createdAt: new Date().toISOString(),
-                    userId: user?.userId || "",
-                    postId,
-                  },
-                ];
-            return { ...post, upvotes: newUpvotes };
-          }
-          return post;
-        })
-      );
+      const hasUpvoted = post.upvotes.some(upvote => upvote.userId === user.userId);
 
-      // Make the API call in the background
+      // Optimistic update
+      setPosts(posts.map(p => {
+        if (p.id === postId) {
+          return {
+            ...p,
+            upvotes: hasUpvoted
+              ? p.upvotes.filter(u => u.userId !== user.userId)
+              : [...p.upvotes, { 
+                  userId: user.userId, 
+                  postId, 
+                  id: 'temp',
+                  createdAt: new Date().toISOString()
+                }]
+          };
+        }
+        return p;
+      }));
+
+      // Make API call
       if (hasUpvoted) {
         await blogService.removeUpvote(postId);
       } else {
         await blogService.upvotePost(postId);
       }
 
-      // Fetch the updated post to ensure consistency
+      // Refresh the post to get the latest state
       const updatedPost = await blogService.getPostById(postId);
-      setPosts(posts.map((post) => (post.id === postId ? updatedPost : post)));
+      setPosts(posts.map(p => p.id === postId ? updatedPost : p));
     } catch (error) {
-      console.error("Error updating upvote:", error);
-      // Revert the optimistic update on error
+      console.error('Error handling upvote:', error);
+      // Revert on error by refreshing the post
       const updatedPost = await blogService.getPostById(postId);
-      setPosts(posts.map((post) => (post.id === postId ? updatedPost : post)));
+      setPosts(posts.map(p => p.id === postId ? updatedPost : p));
     }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedPost) return;
+    
+    setIsDeleting(true);
+    try {
+      await blogService.deletePost(selectedPost.id);
+      setPosts(posts.filter((p) => p.id !== selectedPost.id));
+    } catch (error) {
+      console.error("Error deleting post:", error);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+      setSelectedPost(null);
+    }
+  };
+
+  const openDeleteConfirm = (e: React.MouseEvent, post: Post) => {
+    e.stopPropagation();
+    setSelectedPost(post);
+    setShowDeleteConfirm(true);
+  };
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
   };
 
   if (isLoading) {
     return (
       <MainLayout>
-        <div className='flex justify-center items-center min-h-[60vh]'>
-          <p className='text-gray-600 animate-pulse'>Loading posts...</p>
-        </div>
-      </MainLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <MainLayout>
-        <div className='flex flex-col items-center justify-center min-h-[60vh]'>
-          <div className='bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-4'>
-            {error}
-          </div>
-          <button
-            className='btn btn-secondary'
-            onClick={() => {
-              const fetchPosts = async () => {
-                try {
-                  const data = await blogService.getAllPosts();
-                  setPosts(data);
-                } catch (err: any) {
-                  console.error("Error loading posts:", err);
-                  setError(err.message || "Failed to load posts");
-                }
-              };
-              fetchPosts();
-            }}
-          >
-            Try Again
-          </button>
+        <div className="container mx-auto px-4 py-8">
+          <p>Loading...</p>
         </div>
       </MainLayout>
     );
@@ -170,113 +121,100 @@ export const Home = () => {
 
   return (
     <MainLayout>
-      <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='flex justify-between items-center mb-6'>
-          <h1 className='text-2xl font-bold text-gray-900'>Blog Posts</h1>
-          <Button variant='primary' onClick={() => navigate("/create")}>
-            Create New Post
-          </Button>
-        </div>
-
-        <div className='space-y-6'>
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid gap-6">
           {posts.map((post) => {
             const isAuthor = user?.userId === post.author.id;
+            const hasUpvoted = post.upvotes.some(upvote => upvote.userId === user?.userId);
+            
             return (
-              <div
+              <Card 
                 key={post.id}
-                className='card cursor-pointer hover:shadow-md transition-shadow duration-200'
-                onClick={() => handlePostClick(post.id)}
+                className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => navigate(`/post/${post.id}`)}
               >
-                <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4'>
-                  <div className='flex items-center space-x-2'>
-                    <span className='text-sm text-gray-500 truncate max-w-[200px]'>
-                      {post.author.name || post.author.email}
-                    </span>
-                    <span className='text-gray-300'>•</span>
-                    <span className='text-sm text-gray-500 whitespace-nowrap'>
-                      {formatDate(post.createdAt)}
-                    </span>
-                  </div>
-                  <div className='flex items-center gap-4'>
+                <h2 className="text-2xl font-bold mb-4">{post.title}</h2>
+                <p className="text-gray-600 mb-4">
+                  {post.content.substring(0, 200)}...
+                </p>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-gray-500">
+                      By {post.author?.name || "Unknown"}
+                    </div>
                     <Button
-                      variant={
-                        post.upvotes.some(
-                          (upvote) => upvote.userId === user?.userId
-                        )
-                          ? "primary"
-                          : "secondary"
-                      }
-                      onClick={(e: React.MouseEvent) => {
+                      variant={hasUpvoted ? "secondary" : "outline"}
+                      size="sm"
+                      className="flex items-center gap-1"
+                      onClick={(e) => {
                         e.stopPropagation();
                         handleUpvote(post.id);
                       }}
-                      disabled={!user}
                     >
-                      {post.upvotes.some(
-                        (upvote) => upvote.userId === user?.userId
-                      )
-                        ? "Upvoted"
-                        : "Upvote"}{" "}
-                      ({post.upvotes.length})
+                      <ThumbsUp className={`w-4 h-4 ${hasUpvoted ? "fill-current" : ""}`} />
+                      <span>{post.upvotes.length}</span>
                     </Button>
-                    {isAuthor && (
-                      <div className='flex items-center gap-2'>
-                        {!showDeleteConfirm ? (
-                          <>
-                            <Button
-                              variant='secondary'
-                              onClick={(e: React.MouseEvent) => {
-                                e.stopPropagation();
-                                navigate(`/edit/${post.id}`);
-                              }}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant='danger'
-                              onClick={(e: React.MouseEvent) => {
-                                e.stopPropagation();
-                                setShowDeleteConfirm(post.id);
-                              }}
-                            >
-                              Delete
-                            </Button>
-                          </>
-                        ) : (
-                          <div className='flex items-center gap-2'>
-                            <Button
-                              variant='danger'
-                              onClick={(e: React.MouseEvent) => {
-                                e.stopPropagation();
-                                handleDelete(post.id);
-                              }}
-                              isLoading={isDeleting}
-                            >
-                              {isDeleting ? "..." : "Confirm"}
-                            </Button>
-                            <Button
-                              variant='secondary'
-                              onClick={(e: React.MouseEvent) => {
-                                e.stopPropagation();
-                                setShowDeleteConfirm(null);
-                              }}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
+                  {isAuthor && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/post/${post.id}/edit`);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDeleteConfirm(e, post);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                <h2 className='text-xl font-semibold text-gray-900 mb-2 hover:text-blue-600'>
-                  {post.title}
-                </h2>
-                <p className='text-gray-600 line-clamp-3'>{post.content}</p>
-              </div>
+              </Card>
             );
           })}
         </div>
+        
+        <div className="flex justify-center items-center gap-4 mt-6">
+          <Button
+            variant="outline"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <span className="mx-4">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
+        </div>
+
+        {showDeleteConfirm && (
+          <DeleteConfirmation
+            onConfirm={handleDelete}
+            onCancel={() => {
+              setShowDeleteConfirm(false);
+              setSelectedPost(null);
+            }}
+            isLoading={isDeleting}
+          />
+        )}
       </div>
     </MainLayout>
   );

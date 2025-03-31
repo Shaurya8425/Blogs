@@ -1,36 +1,22 @@
 import { Routes, Route } from "react-router-dom";
+import { Home } from "./pages/Home";
 import { Login } from "./pages/Login";
 import { Signup } from "./pages/Signup";
-import { Home } from "./pages/Home";
 import { CreatePost } from "./pages/CreatePost";
 import { EditPost } from "./pages/EditPost";
 import { PostDetail } from "./pages/PostDetail";
 import { Profile } from "./pages/Profile";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
-export function AppRoutes() {
+export const AppRoutes = () => {
   return (
     <Routes>
-      <Route path='/login' element={<Login />} />
-      <Route path='/signup' element={<Signup />} />
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/post/:postId" element={<PostDetail />} />
       <Route
-        path='/'
-        element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/create'
-        element={
-          <ProtectedRoute>
-            <CreatePost />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path='/edit/:id'
+        path="/post/:postId/edit"
         element={
           <ProtectedRoute>
             <EditPost />
@@ -38,15 +24,15 @@ export function AppRoutes() {
         }
       />
       <Route
-        path='/post/:id'
+        path="/create"
         element={
           <ProtectedRoute>
-            <PostDetail />
+            <CreatePost />
           </ProtectedRoute>
         }
       />
       <Route
-        path='/profile'
+        path="/profile"
         element={
           <ProtectedRoute>
             <Profile />
@@ -54,7 +40,7 @@ export function AppRoutes() {
         }
       />
       <Route
-        path='/profile/:userId'
+        path="/profile/:userId"
         element={
           <ProtectedRoute>
             <Profile />
@@ -63,4 +49,4 @@ export function AppRoutes() {
       />
     </Routes>
   );
-}
+};

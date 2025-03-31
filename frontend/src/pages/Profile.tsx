@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Post, blogService } from "../services/blog";
 import { MainLayout } from "../components/layout/MainLayout";
 import { useAuth } from "../hooks/useAuth";
-import { Button } from "../components/common/Button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
+import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { DeleteConfirmation } from "../components/common/DeleteConfirmation";
+import { ThumbsUp } from "lucide-react";
 
 export function Profile() {
   const { userId } = useParams<{ userId: string }>();
@@ -27,6 +29,9 @@ export function Profile() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingPost, setDeletingPost] = useState<Post | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -91,63 +96,40 @@ export function Profile() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    // Validate passwords if changing password
+    if (newPassword || currentPassword) {
+      if (!currentPassword) {
+        toast.error("Current password is required");
+        return;
+      }
+      if (!newPassword) {
+        toast.error("New password is required");
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        toast.error("Passwords do not match");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
-
     try {
-      // Validate passwords if changing
-      if (currentPassword || newPassword || confirmPassword) {
-        if (!currentPassword || !newPassword || !confirmPassword) {
-          toast.error("Please fill in all password fields");
-          return;
-        }
-        if (newPassword !== confirmPassword) {
-          toast.error("New passwords do not match");
-          return;
-        }
+      if (!profileUser?.id) {
+        throw new Error("No user profile found");
       }
 
-      // Prepare the update data
-      const updateData = {
-        name: name.trim(),
-        ...(currentPassword && newPassword
-          ? { currentPassword, newPassword }
-          : {}),
-      };
-
-      // Make the API call
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/v1/users/${userId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify(updateData),
-        }
-      );
-
-      // Handle non-OK responses
-      if (!response.ok) {
-        let errorMessage = "Failed to update profile";
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          console.error("Error parsing error response:", e);
-        }
-        throw new Error(errorMessage);
+      const updateData: { name?: string; currentPassword?: string; newPassword?: string } = {};
+      if (name !== profileUser.name) {
+        updateData.name = name;
+      }
+      if (currentPassword && newPassword) {
+        updateData.currentPassword = currentPassword;
+        updateData.newPassword = newPassword;
       }
 
-      // Parse the successful response
-      let updatedProfile;
-      try {
-        updatedProfile = await response.json();
-      } catch (e) {
-        console.error("Error parsing success response:", e);
-        throw new Error("Invalid response from server");
-      }
-
+      const updatedProfile = await blogService.updateUserProfile(profileUser.id, updateData);
+      
       // Update the UI
       setProfileUser(updatedProfile);
       setIsEditing(false);
@@ -162,6 +144,67 @@ export function Profile() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingPost) return;
+    
+    setIsDeleting(true);
+    try {
+      await blogService.deletePost(deletingPost.id);
+      setPosts(posts.filter((p) => p.id !== deletingPost.id));
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+      setDeletingPost(null);
+    }
+  };
+
+  const openDeleteConfirm = (post: Post) => {
+    setDeletingPost(post);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleUpvote = async (postId: string) => {
+    try {
+      const hasUpvoted = posts.find(p => p.id === postId)?.upvotes.some(upvote => upvote.userId === user?.userId);
+      
+      // Optimistic update
+      setPosts(posts.map(p => {
+        if (p.id === postId) {
+          return {
+            ...p,
+            upvotes: hasUpvoted
+              ? p.upvotes.filter(u => u.userId !== user?.userId)
+              : [...p.upvotes, { 
+                  userId: user?.userId || '', 
+                  postId, 
+                  id: 'temp',
+                  createdAt: new Date().toISOString()
+                }]
+          };
+        }
+        return p;
+      }));
+
+      if (hasUpvoted) {
+        await blogService.removeUpvote(postId);
+      } else {
+        await blogService.upvotePost(postId);
+      }
+
+      // Refresh posts to get latest state
+      const updatedPosts = await blogService.getUserPosts(userId || user?.userId || '');
+      setPosts(updatedPosts);
+    } catch (error) {
+      console.error('Error handling upvote:', error);
+      toast.error('Failed to update upvote');
+      // Revert on error
+      const updatedPosts = await blogService.getUserPosts(userId || user?.userId || '');
+      setPosts(updatedPosts);
     }
   };
 
@@ -194,127 +237,190 @@ export function Profile() {
 
   return (
     <MainLayout>
-      <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6'>
         {/* Profile Header */}
-        <div className='bg-white rounded-lg shadow-sm p-6 mb-8'>
-          <div className='flex items-center justify-between'>
+        <div className='bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6 sm:mb-8'>
+          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
             <div>
-              <h1 className='text-2xl font-bold text-gray-900'>
+              <h1 className='text-xl sm:text-2xl font-bold text-gray-900'>
                 {profileUser.name || profileUser.email}
               </h1>
-              <p className='text-gray-600'>{profileUser.email}</p>
+              <p className='text-gray-600 text-sm sm:text-base'>{profileUser.email}</p>
             </div>
             {isOwnProfile && (
               <Button
-                variant={isEditing ? "outline" : "default"}
+                variant={isEditing ? 'outline' : 'default'}
                 onClick={() => setIsEditing(!isEditing)}
+                className='w-full sm:w-auto'
               >
-                {isEditing ? "Cancel" : "Edit Profile"}
+                {isEditing ? 'Cancel' : 'Edit Profile'}
               </Button>
             )}
           </div>
         </div>
 
+        {/* Edit Profile Form */}
+        {isEditing && (
+          <Card className="p-6 mb-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Edit Profile</h2>
+              <p className="text-sm text-gray-500">Update your personal information</p>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-sm font-medium text-gray-700">
+                  Name
+                </label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full"
+                  placeholder="Enter your name"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="currentPassword" className="text-sm font-medium text-gray-700">
+                  Current Password
+                </label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full"
+                  placeholder="Enter current password"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="newPassword" className="text-sm font-medium text-gray-700">
+                  New Password
+                </label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full"
+                  placeholder="Enter new password"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                  Confirm New Password
+                </label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full"
+                  placeholder="Confirm new password"
+                />
+              </div>
+              <div className="pt-4">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full"
+                  variant="primary"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <span className="mr-2">Saving changes</span>
+                      <span className="animate-spin">⚪</span>
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        )}
+
         {/* User's Posts */}
-        <div className='space-y-6'>
+        <div className='space-y-4 sm:space-y-6'>
           <h2 className='text-xl font-semibold text-gray-900 mb-4'>
             Posts ({posts.length})
           </h2>
-          {isEditing ? (
-            <Card className='p-6 mb-8'>
-              <form onSubmit={handleSubmit} className='space-y-4'>
-                <div>
-                  <Label htmlFor='name'>Name</Label>
-                  <Input
-                    id='name'
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className='space-y-2'>
-                  <h3 className='text-lg font-medium'>Change Password</h3>
-                  <div>
-                    <Label htmlFor='currentPassword'>Current Password</Label>
-                    <Input
-                      id='currentPassword'
-                      type='password'
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor='newPassword'>New Password</Label>
-                    <Input
-                      id='newPassword'
-                      type='password'
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor='confirmPassword'>
-                      Confirm New Password
-                    </Label>
-                    <Input
-                      id='confirmPassword'
-                      type='password'
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <Button type='submit' disabled={isSubmitting} variant='primary'>
-                  {isSubmitting ? "Saving..." : "Save Changes"}
-                </Button>
-              </form>
-            </Card>
-          ) : (
-            <div>
-              <div className='mb-4'>
-                <h2 className='text-lg font-medium'>Name</h2>
-                <p className='text-gray-600'>{profileUser.name}</p>
-              </div>
-              <div>
-                <h2 className='text-lg font-medium'>Email</h2>
-                <p className='text-gray-600'>{profileUser.email}</p>
-              </div>
-            </div>
-          )}
-          {posts.map((post) => (
-            <Card key={post.id} className='p-6 mb-4'>
-              <div className='flex justify-between items-start'>
-                <div>
-                  <h3
-                    className='text-lg font-medium text-gray-900 hover:text-blue-600 cursor-pointer'
-                    onClick={() => navigate(`/post/${post.id}`)}
+          <div className='grid gap-4 sm:gap-6'>
+            {posts.map((post) => (
+              <Card 
+                key={post.id} 
+                className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => navigate(`/post/${post.id}`)}
+              >
+                <h3 className="text-2xl font-bold mb-2 hover:text-blue-600">
+                  {post.title}
+                </h3>
+                <div className="flex items-center gap-4 mb-4">
+                  <Button
+                    variant={post.upvotes.some(upvote => upvote.userId === user?.userId) ? "secondary" : "outline"}
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUpvote(post.id);
+                    }}
                   >
-                    {post.title}
-                  </h3>
-                  <p className='text-gray-500 text-sm mt-1'>
-                    {formatDate(post.createdAt)}
-                  </p>
+                    <ThumbsUp className={`w-4 h-4 ${post.upvotes.some(upvote => upvote.userId === user?.userId) ? "fill-current" : ""}`} />
+                    <span>{post.upvotes.length}</span>
+                  </Button>
+                  {user?.userId === post.author.id && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/post/${post.id}/edit`);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDeleteConfirm(post);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                <div className='flex items-center space-x-4'>
-                  <span className='text-gray-600 text-sm'>
-                    {post.upvotes.length} upvotes
-                  </span>
-                  <span className='text-gray-600 text-sm'>
-                    {post.replies.length} replies
-                  </span>
+                <p className="text-gray-600 line-clamp-3 mb-4">{post.content}</p>
+                <div className="text-sm text-gray-500">
+                  {post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  }) : 'No date'}
                 </div>
-              </div>
-              <p className='text-gray-700 mt-2'>{post.content}</p>
-            </Card>
-          ))}
-          {posts.length === 0 && (
-            <p className='text-gray-500 text-center py-8'>
-              No posts yet. {isOwnProfile ? "Create your first post!" : ""}
-            </p>
-          )}
+              </Card>
+            ))}
+            {posts.length === 0 && (
+              <p className='text-gray-500 text-center py-8'>
+                No posts yet. {isOwnProfile ? "Create your first post!" : ""}
+              </p>
+            )}
+          </div>
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        {showDeleteConfirm && (
+          <DeleteConfirmation
+            onConfirm={handleDelete}
+            onCancel={() => {
+              setShowDeleteConfirm(false);
+              setDeletingPost(null);
+            }}
+            isLoading={isDeleting}
+          />
+        )}
       </div>
     </MainLayout>
   );

@@ -98,15 +98,25 @@ export const blogService = {
   },
 
   upvotePost: async (postId: string): Promise<Upvote> => {
-    const response = await api.post<Upvote>(`/blog/${postId}/upvote`, {});
-    if (!response.data) {
-      throw new Error("Failed to upvote post");
+    try {
+      const response = await api.post<Upvote>(`/blog/${postId}/upvote`, {});
+      if (!response.data) {
+        throw new Error('Failed to upvote post');
+      }
+      return response.data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
     }
-    return response.data;
   },
 
   removeUpvote: async (postId: string): Promise<void> => {
-    await api.delete(`/blog/${postId}/upvote`);
+    try {
+      await api.delete(`/blog/${postId}/upvote`);
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
   },
 
   addReply: async (postId: string, data: CreateReplyData): Promise<Reply> => {

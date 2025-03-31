@@ -1,17 +1,17 @@
-import { BrowserRouter as Router } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { BrowserRouter } from "react-router-dom";
 import { AppRoutes } from "./AppRoutes";
+import { AuthProvider } from "./context/AuthContext";
 import { Toaster } from "react-hot-toast";
 
-function App() {
+const App = () => {
   return (
-    <Router>
+    <BrowserRouter>
       <AuthProvider>
         <AppRoutes />
-        <Toaster position='top-right' />
+        <Toaster position="top-right" />
       </AuthProvider>
-    </Router>
+    </BrowserRouter>
   );
-}
+};
 
 export default App;

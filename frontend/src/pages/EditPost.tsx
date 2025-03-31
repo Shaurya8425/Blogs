@@ -1,82 +1,83 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { blogService } from "../services/blog";
-import { useAuth } from "../hooks/useAuth";
 import { MainLayout } from "../components/layout/MainLayout";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Card } from "../components/ui/card";
+import { toast } from "react-hot-toast";
+import { Pencil } from "lucide-react";
+import { AuthContext } from "../context/AuthContext";
 
 export const EditPost = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const { postId } = useParams<{ postId: string }>();
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    title: "",
-    content: "",
-  });
+  const navigate = useNavigate();
+  const auth = useContext(AuthContext);
+  const user = auth?.user;
 
   useEffect(() => {
     const loadPost = async () => {
       try {
-        if (!id) return;
-        const post = await blogService.getPostById(id);
-
+        const post = await blogService.getPostById(postId!);
         if (post.author.id !== user?.userId) {
-          setError("You are not authorized to edit this post");
+          toast.error("You don't have permission to edit this post");
+          navigate('/');
           return;
         }
-
-        setFormData({
-          title: post.title,
-          content: post.content,
-        });
+        setTitle(post.title);
+        setContent(post.content);
       } catch (error) {
         console.error("Error loading post:", error);
-        setError("Failed to load post");
+        toast.error("Failed to load post");
+        navigate('/');
       } finally {
         setIsLoading(false);
       }
     };
 
     loadPost();
-  }, [id, user?.userId]);
+  }, [postId, user?.userId, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id) return;
+    if (!title.trim() || !content.trim()) return;
 
+    setIsSubmitting(true);
     try {
-      setIsSaving(true);
-      await blogService.updatePost(id, formData);
-      navigate("/");
+      await blogService.updatePost(postId!, {
+        title: title.trim(),
+        content: content.trim(),
+      });
+      toast.success('Post updated successfully!');
+      navigate(`/profile`);
     } catch (error) {
       console.error("Error updating post:", error);
-      setError("Failed to update post");
-      setIsSaving(false);
+      toast.error('Failed to update post');
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const handleCancel = () => {
+    navigate('/profile');
   };
 
   if (isLoading) {
     return (
       <MainLayout>
-        <div className='flex justify-center items-center min-h-[60vh]'>
-          <p className='text-gray-600 animate-pulse'>Loading your post...</p>
-        </div>
-      </MainLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <MainLayout>
-        <div className='flex flex-col items-center justify-center min-h-[60vh]'>
-          <div className='bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-4'>
-            {error}
-          </div>
-          <button className='btn btn-secondary' onClick={() => navigate("/")}>
-            Return to Home
-          </button>
+        <div className="container mx-auto px-4 py-8">
+          <Card className="max-w-3xl mx-auto p-6">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+              <div className="h-10 bg-gray-200 rounded mb-4"></div>
+              <div className="h-40 bg-gray-200 rounded"></div>
+            </div>
+          </Card>
         </div>
       </MainLayout>
     );
@@ -84,66 +85,67 @@ export const EditPost = () => {
 
   return (
     <MainLayout>
-      <div className='max-w-4xl mx-auto'>
-        <div className='card'>
-          <h1 className='text-3xl font-bold text-gray-900 mb-6'>Edit Post</h1>
-          <form onSubmit={handleSubmit} className='space-y-6'>
-            <div>
-              <label
-                htmlFor='title'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-3xl mx-auto p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Pencil className="w-5 h-5" />
+            <h1 className="text-2xl font-bold">Edit Post</h1>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label htmlFor="title" className="text-sm font-medium text-gray-700">
                 Title
               </label>
-              <input
-                type='text'
-                id='title'
-                value={formData.title}
-                onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
-                }
-                className='input'
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter your post title"
+                className="w-full"
                 required
               />
             </div>
 
-            <div>
-              <label
-                htmlFor='content'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
+            <div className="space-y-2">
+              <label htmlFor="content" className="text-sm font-medium text-gray-700">
                 Content
               </label>
-              <textarea
-                id='content'
-                rows={12}
-                value={formData.content}
-                onChange={(e) =>
-                  setFormData({ ...formData, content: e.target.value })
-                }
-                className='input'
+              <Textarea
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Write your post content here..."
+                className="w-full min-h-[300px]"
                 required
               />
             </div>
 
-            <div className='flex justify-end space-x-4'>
-              <button
-                type='button'
-                className='btn btn-secondary'
-                onClick={() => navigate(`/`)}
+            <div className="flex items-center justify-end gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
               >
                 Cancel
-              </button>
-              <button
-                type='submit'
-                className='btn btn-primary'
-                disabled={isSaving}
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting || !title.trim() || !content.trim()}
+                className="min-w-[100px]"
               >
-                {isSaving ? "Saving..." : "Save Changes"}
-              </button>
+                {isSubmitting ? (
+                  <>
+                    <span className="mr-2">Saving</span>
+                    <span className="animate-spin">⚪</span>
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
             </div>
           </form>
-        </div>
+        </Card>
       </div>
     </MainLayout>
   );

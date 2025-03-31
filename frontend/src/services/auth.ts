@@ -49,23 +49,25 @@ export const authService = {
       };
       const response = await api.post<LoginResponse>("/login", loginData);
       if (!response.data) {
-        throw new Error("No data received from server");
+        throw new Error("Invalid credentials");
       }
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
       }
       return {
         user: {
-          id: response.data.id,
+          userId: response.data.id,
           email: response.data.email,
           name: response.data.name,
         },
         token: response.data.token,
         message: response.data.message,
       };
-    } catch (error) {
-      console.error("Login error:", error);
-      throw error;
+    } catch (error: any) {
+      if (error.message.includes("401")) {
+        throw new Error("Invalid email or password");
+      }
+      throw new Error(error.message || "Failed to login");
     }
   },
 

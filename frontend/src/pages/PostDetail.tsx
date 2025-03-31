@@ -1,129 +1,72 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Post, blogService } from "../services/blog";
 import { MainLayout } from "../components/layout/MainLayout";
 import { useAuth } from "../hooks/useAuth";
-import { Button } from "../components/common/Button";
-import { TextArea } from "../components/common/TextArea";
-import { ErrorMessage } from "../components/common/ErrorMessage";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Textarea } from "../components/ui/textarea";
+import { ThumbsUp, MessageCircle } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 export const PostDetail = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const { postId } = useParams<{ postId: string }>();
   const [post, setPost] = useState<Post | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [replyContent, setReplyContent] = useState("");
-  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
-  const [replyError, setReplyError] = useState<string | null>(null);
-
-  const formatDate = (dateString: string | undefined) => {
-    try {
-      if (!dateString) return "N/A";
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return "N/A";
-
-      const now = new Date();
-      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-      const diffInMinutes = Math.floor(diffInSeconds / 60);
-      const diffInHours = Math.floor(diffInMinutes / 60);
-
-      if (diffInSeconds < 60) {
-        return "just now";
-      } else if (diffInMinutes < 60) {
-        return `${diffInMinutes} minute${diffInMinutes === 1 ? "" : "s"} ago`;
-      } else if (diffInHours < 24) {
-        return `${diffInHours} hour${diffInHours === 1 ? "" : "s"} ago`;
-      }
-
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "N/A";
-    }
-  };
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const loadPost = async () => {
-      try {
-        if (!id) return;
-        const data = await blogService.getPostById(id);
-        setPost(data);
-      } catch (err: any) {
-        console.error("Error loading post:", err);
-        setError(err.message || "Failed to load post");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    fetchPost();
+  }, [postId]);
 
-    loadPost();
-
-    const pollInterval = setInterval(loadPost, 5000);
-
-    return () => clearInterval(pollInterval);
-  }, [id]);
-
-  const handleDelete = async () => {
-    if (!post) return;
+  const fetchPost = async () => {
     try {
-      setIsDeleting(true);
-      await blogService.deletePost(post.id);
-      navigate("/");
+      if (!postId) return;
+      const data = await blogService.getPostById(postId);
+      setPost(data);
     } catch (error) {
-      console.error("Error deleting post:", error);
+      console.error("Error fetching post:", error);
     } finally {
-      setIsDeleting(false);
-      setShowDeleteConfirm(false);
+      setIsLoading(false);
     }
   };
 
   const handleUpvote = async () => {
     if (!post || !user) return;
-    try {
-      const hasUpvoted = post.upvotes.some(
-        (upvote) => upvote.userId === user.userId
-      );
 
-      // Optimistically update the UI
-      setPost((prev) => {
-        if (!prev) return null;
-        const newUpvotes = hasUpvoted
-          ? prev.upvotes.filter((upvote) => upvote.userId !== user.userId)
-          : [
-              ...prev.upvotes,
-              {
-                id: "temp",
-                createdAt: new Date().toISOString(),
-                userId: user.userId,
-                postId: prev.id,
-              },
-            ];
-        return { ...prev, upvotes: newUpvotes };
+    try {
+      const hasUpvoted = post.upvotes.some(upvote => upvote.userId === user.userId);
+
+      // Optimistic update
+      setPost({
+        ...post,
+        upvotes: hasUpvoted
+          ? post.upvotes.filter(u => u.userId !== user.userId)
+          : [...post.upvotes, { 
+              userId: user.userId, 
+              postId: post.id, 
+              id: 'temp',
+              createdAt: new Date().toISOString()
+            }]
       });
 
-      // Make the API call in the background
+      // Make API call
       if (hasUpvoted) {
         await blogService.removeUpvote(post.id);
       } else {
         await blogService.upvotePost(post.id);
       }
 
-      // Fetch the updated post to ensure consistency
+      // Refresh post to get latest state
       const updatedPost = await blogService.getPostById(post.id);
       setPost(updatedPost);
     } catch (error) {
-      console.error("Error handling upvote:", error);
-      // Revert the optimistic update on error
+      console.error('Error handling upvote:', error);
+      toast.error('Failed to update upvote');
+      // Revert on error
       const updatedPost = await blogService.getPostById(post.id);
       setPost(updatedPost);
     }
@@ -131,209 +74,146 @@ export const PostDetail = () => {
 
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!post || !user || !replyContent.trim()) return;
+    if (!post || !replyContent.trim()) return;
 
+    setIsSubmitting(true);
     try {
-      setIsSubmittingReply(true);
-      setReplyError(null);
-      const newReply = await blogService.addReply(post.id, {
-        content: replyContent,
+      const reply = await blogService.addReply(post.id, {
+        content: replyContent
       });
-      setPost((prev) =>
-        prev ? { ...prev, replies: [...prev.replies, newReply] } : null
-      );
+      setPost({
+        ...post,
+        replies: [...post.replies, reply]
+      });
       setReplyContent("");
-    } catch (err: any) {
-      setReplyError(err.message || "Failed to add reply");
-    } finally {
-      setIsSubmittingReply(false);
-    }
-  };
-
-  const handleDeleteReply = async (replyId: string) => {
-    if (!post) return;
-    try {
-      await blogService.deleteReply(post.id, replyId);
-      setPost((prev) =>
-        prev
-          ? {
-              ...prev,
-              replies: prev.replies.filter((reply) => reply.id !== replyId),
-            }
-          : null
-      );
+      toast.success('Reply posted successfully');
     } catch (error) {
-      console.error("Error deleting reply:", error);
+      console.error("Error posting reply:", error);
+      toast.error('Failed to post reply');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !post) {
     return (
       <MainLayout>
-        <div className='flex justify-center items-center min-h-[60vh]'>
-          <p className='text-gray-600 animate-pulse'>Loading post...</p>
-        </div>
-      </MainLayout>
-    );
-  }
-
-  if (error || !post) {
-    return (
-      <MainLayout>
-        <div className='flex flex-col items-center justify-center min-h-[60vh]'>
-          <div className='bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-4'>
-            {error || "Post not found"}
-          </div>
-          <button className='btn btn-secondary' onClick={() => navigate("/")}>
-            Return to Home
-          </button>
+        <div className="container mx-auto px-4 py-8">
+          <p>Loading...</p>
         </div>
       </MainLayout>
     );
   }
 
   const isAuthor = user?.userId === post.author.id;
-  const hasUpvoted = post.upvotes.some(
-    (upvote) => upvote.userId === user?.userId
-  );
+  const hasUpvoted = post.upvotes.some(upvote => upvote.userId === user?.userId);
 
   return (
     <MainLayout>
-      <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='card'>
-          <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6'>
-            <div className='flex items-center space-x-2'>
-              <span className='text-sm text-gray-500 truncate max-w-[200px]'>
-                {post.author.name || post.author.email}
-              </span>
-              <span className='text-gray-300'>•</span>
-              <span className='text-sm text-gray-500 whitespace-nowrap'>
-                {formatDate(post.createdAt)}
-              </span>
+      <div className="container mx-auto px-4 py-8">
+        <Card className="p-6 mb-8">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{post.title}</h1>
+              <div className="flex items-center gap-4 text-sm text-gray-500">
+                <span>By {post.author.name || "Unknown"}</span>
+                <span>•</span>
+                <span>
+                  {post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  }) : 'No date'}
+                </span>
+              </div>
             </div>
-            <div className='flex items-center gap-4'>
+            <div className="flex items-center gap-2">
               <Button
-                variant={hasUpvoted ? "primary" : "secondary"}
+                variant={hasUpvoted ? "secondary" : "outline"}
+                size="sm"
+                className="flex items-center gap-1"
                 onClick={handleUpvote}
-                disabled={!user}
               >
-                {hasUpvoted ? "Upvoted" : "Upvote"} ({post.upvotes.length})
+                <ThumbsUp className={`w-4 h-4 ${hasUpvoted ? "fill-current" : ""}`} />
+                <span>{post.upvotes.length}</span>
               </Button>
               {isAuthor && (
-                <div className='flex items-center gap-2'>
-                  {!showDeleteConfirm ? (
-                    <>
-                      <Button
-                        variant='secondary'
-                        onClick={() => navigate(`/edit/${post.id}`)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant='danger'
-                        onClick={() => setShowDeleteConfirm(true)}
-                      >
-                        Delete
-                      </Button>
-                    </>
-                  ) : (
-                    <div className='flex items-center gap-2'>
-                      <Button
-                        variant='danger'
-                        onClick={handleDelete}
-                        isLoading={isDeleting}
-                      >
-                        {isDeleting ? "..." : "Confirm"}
-                      </Button>
-                      <Button
-                        variant='secondary'
-                        onClick={() => setShowDeleteConfirm(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/post/${post.id}/edit`)}
+                >
+                  Edit Post
+                </Button>
               )}
             </div>
           </div>
+          
+          <div className="prose max-w-none mb-8">
+            {post.content}
+          </div>
 
-          <h1 className='text-3xl font-bold mb-4'>{post.title}</h1>
-          <div className='prose max-w-none mb-8'>{post.content}</div>
-
-          {/* Replies Section */}
-          <div className='mt-8 border-t pt-6'>
-            <h2 className='text-xl font-semibold mb-4'>Replies</h2>
-
-            {/* Reply Form */}
-            {user && (
-              <form onSubmit={handleReply} className='mb-6'>
-                <TextArea
-                  label='Add a reply'
+          {/* Reply Section */}
+          <div className="border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <MessageCircle className="w-5 h-5" />
+              Replies ({post.replies.length})
+            </h2>
+            
+            {user ? (
+              <form onSubmit={handleReply} className="mb-6">
+                <Textarea
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder='Write your reply...'
-                  disabled={isSubmittingReply}
-                  className='mb-2'
+                  placeholder="Write your reply..."
+                  className="mb-4"
+                  rows={3}
                 />
-                {replyError && (
-                  <ErrorMessage message={replyError} className='mb-2' />
-                )}
                 <Button
-                  type='submit'
-                  variant='primary'
-                  isLoading={isSubmittingReply}
-                  disabled={!replyContent.trim()}
+                  type="submit"
+                  disabled={isSubmitting || !replyContent.trim()}
+                  className="flex items-center gap-2"
                 >
-                  {isSubmittingReply ? "Posting..." : "Post Reply"}
+                  {isSubmitting ? (
+                    <>
+                      <span className="mr-2">Posting</span>
+                      <span className="animate-spin">⚪</span>
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="w-4 h-4" />
+                      Post Reply
+                    </>
+                  )}
                 </Button>
               </form>
+            ) : (
+              <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                <p className="text-gray-600">
+                  Please <Button variant="secondary" onClick={() => navigate('/login')}>log in</Button> to reply to this post.
+                </p>
+              </div>
             )}
 
-            {/* Replies List */}
-            <div className='space-y-4'>
-              {[...post.replies]
-                .sort(
-                  (a, b) =>
-                    new Date(b.createdAt).getTime() -
-                    new Date(a.createdAt).getTime()
-                )
-                .map((reply) => (
-                  <div
-                    key={reply.id}
-                    className='bg-gray-50 rounded-lg p-4 border border-gray-100'
-                  >
-                    <div className='flex justify-between items-start mb-2'>
-                      <div className='flex items-center space-x-2'>
-                        <span className='font-medium'>
-                          {reply.user.name || reply.user.email}
-                        </span>
-                        <span className='text-sm text-gray-500'>
-                          {formatDate(reply.createdAt)}
-                        </span>
-                      </div>
-                      {(user?.userId === reply.user.id ||
-                        user?.userId === post.author.id) && (
-                        <Button
-                          variant='danger'
-                          onClick={() => handleDeleteReply(reply.id)}
-                          className='text-sm py-1'
-                        >
-                          Delete
-                        </Button>
-                      )}
-                    </div>
-                    <p className='text-gray-700'>{reply.content}</p>
+            <div className="space-y-4">
+              {post.replies.map((reply) => (
+                <Card key={reply.id} className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="font-medium">{reply.user?.name || reply.user?.email}</span>
+                    <span className="text-sm text-gray-500">
+                      {reply.createdAt ? new Date(reply.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      }) : 'No date'}
+                    </span>
                   </div>
-                ))}
-              {post.replies.length === 0 && (
-                <p className='text-gray-500 text-center py-4'>
-                  No replies yet. Be the first to reply!
-                </p>
-              )}
+                  <p className="text-gray-700">{reply.content}</p>
+                </Card>
+              ))}
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     </MainLayout>
   );

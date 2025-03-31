@@ -1,79 +1,99 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { blogService, CreatePostData } from "../services/blog";
-import { Card } from "../components/common/Card";
-import { Input } from "../components/common/Input";
-import { TextArea } from "../components/common/TextArea";
-import { Button } from "../components/common/Button";
-import { ErrorMessage } from "../components/common/ErrorMessage";
+import { blogService } from "../services/blog";
 import { MainLayout } from "../components/layout/MainLayout";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Card } from "../components/ui/card";
+import { toast } from "react-hot-toast";
+import { Pencil } from "lucide-react";
 
 export const CreatePost = () => {
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<CreatePostData>({
-    title: "",
-    content: "",
-  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError(null);
+    if (!title.trim() || !content.trim()) return;
 
+    setIsSubmitting(true);
     try {
-      await blogService.createPost(formData);
-      navigate("/");
-    } catch (err: any) {
-      setError(err.message || "Failed to create post");
+      const post = await blogService.createPost({
+        title: title.trim(),
+        content: content.trim(),
+      });
+      toast.success('Post created successfully!');
+      navigate(`/post/${post.id}`);
+    } catch (error) {
+      console.error("Error creating post:", error);
+      toast.error('Failed to create post');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
     <MainLayout>
-      <div className='max-w-3xl mx-auto'>
-        <Card>
-          <h1 className='text-2xl font-bold text-gray-900 mb-6'>
-            Write a new story
-          </h1>
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-3xl mx-auto p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Pencil className="w-5 h-5" />
+            <h1 className="text-2xl font-bold">Create New Post</h1>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label htmlFor="title" className="text-sm font-medium text-gray-700">
+                Title
+              </label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter your post title"
+                className="w-full"
+                required
+              />
+            </div>
 
-          <form onSubmit={handleSubmit} className='space-y-6'>
-            <Input
-              label='Title'
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              required
-              placeholder='Enter your story title'
-            />
+            <div className="space-y-2">
+              <label htmlFor="content" className="text-sm font-medium text-gray-700">
+                Content
+              </label>
+              <Textarea
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Write your post content here..."
+                className="w-full min-h-[300px]"
+                required
+              />
+            </div>
 
-            <TextArea
-              label='Content'
-              value={formData.content}
-              onChange={(e) =>
-                setFormData({ ...formData, content: e.target.value })
-              }
-              required
-              placeholder='Write your story here...'
-              rows={15}
-            />
-
-            {error && <ErrorMessage message={error} />}
-
-            <div className='flex justify-end space-x-3'>
+            <div className="flex items-center justify-end gap-4">
               <Button
-                variant='secondary'
-                onClick={() => navigate("/")}
-                type='button'
+                type="button"
+                variant="outline"
+                onClick={() => navigate('/')}
               >
                 Cancel
               </Button>
-              <Button type='submit' isLoading={isLoading}>
-                {isLoading ? "Publishing..." : "Publish"}
+              <Button
+                type="submit"
+                disabled={isSubmitting || !title.trim() || !content.trim()}
+                className="min-w-[100px]"
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="mr-2">Creating</span>
+                    <span className="animate-spin">⚪</span>
+                  </>
+                ) : (
+                  'Create Post'
+                )}
               </Button>
             </div>
           </form>

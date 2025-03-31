@@ -239,6 +239,7 @@ blogRoutes.delete("/:id", verifyToken, async (c) => {
       return c.json({ error: "Unauthorized to delete this post" }, 403);
     }
 
+    // With onDelete: Cascade in our schema, we can just delete the post
     await prisma.post.delete({
       where: { id },
     });
@@ -251,7 +252,7 @@ blogRoutes.delete("/:id", verifyToken, async (c) => {
         return c.json({ error: "Post not found" }, 404);
       }
     }
-    return c.json({ error: "Error deleting post" }, 500);
+    return c.json({ error: "Error deleting post", details: error }, 500);
   }
 });
 

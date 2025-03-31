@@ -21,8 +21,8 @@ model User {
   name     String?
   password String
   posts    Post[]
-  Upvote   Upvote[]
-  Reply    Reply[]
+  upvotes  Upvote[]
+  replies  Reply[]
 }
 
 model Post {
@@ -32,7 +32,7 @@ model Post {
   published Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  author    User     @relation(fields: [authorId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId  String
   upvotes   Upvote[]
   replies   Reply[]
@@ -41,9 +41,9 @@ model Post {
 model Upvote {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  post      Post     @relation(fields: [postId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    String
 
   @@unique([userId, postId])
@@ -54,8 +54,8 @@ model Reply {
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  post      Post     @relation(fields: [postId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    String
 }
