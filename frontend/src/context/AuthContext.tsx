@@ -29,19 +29,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [error, setError] = useState<string | null>(null);
 
   const loadUser = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setUser(null);
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const userData = await authService.getCurrentUser();
-      if (!userData) {
-        throw new Error("No user data received");
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setUser(null);
+        return;
       }
 
+      const userData = await authService.getCurrentUser();
       setUser({
         userId: userData.id || userData.userId || "",
         email: userData.email,
@@ -52,7 +47,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (err) {
       console.error("Error loading user:", err);
       setError("Failed to load user data");
-      localStorage.removeItem("token");
+      localStorage.removeItem("token"); // Clear invalid token
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -60,6 +55,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
     loadUser();
   }, []);
 
@@ -67,9 +67,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await authService.login({ email, password });
-      localStorage.setItem("token", response.token);
-      await loadUser();
+      await authService.login({ email, password });
+      await loadUser(); // Reload user data after successful login
     } catch (err) {
       console.error("Login error:", err);
       setError(err instanceof Error ? err.message : "Failed to login");
@@ -80,7 +79,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
+    authService.logout();
     setUser(null);
   };
 
