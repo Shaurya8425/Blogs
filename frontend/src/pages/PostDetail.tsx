@@ -135,12 +135,12 @@ export const PostDetail = () => {
               <p>Loading...</p>
             ) : (
               <Card className="p-6 mb-8">
-                <div className="flex justify-between items-start mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
                   <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{post.title}</h1>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{post.title}</h1>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
                       <span>By {post.author.name || "Unknown"}</span>
-                      <span>•</span>
+                      <span className="hidden sm:inline">•</span>
                       <span>
                         {post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
@@ -150,11 +150,11 @@ export const PostDetail = () => {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     <Button
                       variant={post.upvotes.some(upvote => upvote.userId === user.userId) ? "secondary" : "outline"}
                       size="sm"
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 w-full sm:w-auto justify-center"
                       onClick={handleUpvote}
                     >
                       <ThumbsUp className={`w-4 h-4 ${post.upvotes.some(upvote => upvote.userId === user.userId) ? "fill-current" : ""}`} />
@@ -164,6 +164,7 @@ export const PostDetail = () => {
                       <Button
                         variant="outline"
                         size="sm"
+                        className="w-full sm:w-auto justify-center"
                         onClick={() => navigate(`/post/${post.id}/edit`)}
                       >
                         Edit Post
@@ -172,7 +173,7 @@ export const PostDetail = () => {
                   </div>
                 </div>
                 
-                <div className="prose max-w-none mb-8">
+                <div className="prose max-w-none mb-8 break-words">
                   {post.content}
                 </div>
 
@@ -188,13 +189,13 @@ export const PostDetail = () => {
                       value={replyContent}
                       onChange={(e) => setReplyContent(e.target.value)}
                       placeholder="Write your reply..."
-                      className="mb-4"
+                      className="mb-4 w-full"
                       rows={3}
                     />
                     <Button
                       type="submit"
                       disabled={isSubmitting || !replyContent.trim()}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 w-full sm:w-auto justify-center"
                     >
                       {isSubmitting ? (
                         <>
@@ -213,10 +214,10 @@ export const PostDetail = () => {
                   <div className="space-y-4">
                     {post.replies.map((reply) => (
                       <Card key={reply.id} className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <span className="font-medium">{reply.user?.name || reply.user?.email}</span>
-                            <span className="text-gray-500 text-sm ml-2">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-2">
+                          <div className="w-full sm:w-auto">
+                            <span className="font-medium block sm:inline">{reply.user?.name || reply.user?.email}</span>
+                            <span className="text-gray-500 text-sm block sm:inline sm:ml-2">
                               {reply.createdAt ? new Date(reply.createdAt).toLocaleDateString('en-US', {
                                 year: 'numeric',
                                 month: 'long',
@@ -228,14 +229,14 @@ export const PostDetail = () => {
                             <Button
                               variant="secondary"
                               size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full sm:w-auto justify-center"
                               onClick={() => handleDeleteReply(reply.id)}
                             >
                               Delete
                             </Button>
                           )}
                         </div>
-                        <p className="text-gray-700">{reply.content}</p>
+                        <p className="text-gray-700 break-words">{reply.content}</p>
                       </Card>
                     ))}
                   </div>
