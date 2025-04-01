@@ -19,8 +19,12 @@ export const PostDetail = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     fetchPost();
-  }, [postId]);
+  }, [postId, user]);
 
   const fetchPost = async () => {
     try {
@@ -111,137 +115,135 @@ export const PostDetail = () => {
     }
   };
 
-  if (isLoading || !post) {
-    return (
-      <MainLayout>
-        <div className="container mx-auto px-4 py-8">
-          <p>Loading...</p>
-        </div>
-      </MainLayout>
-    );
-  }
-
-  const isAuthor = user?.userId === post.author.id;
-  const hasUpvoted = post.upvotes.some(upvote => upvote.userId === user?.userId);
-
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-8">
-        <Card className="p-6 mb-8">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{post.title}</h1>
-              <div className="flex items-center gap-4 text-sm text-gray-500">
-                <span>By {post.author.name || "Unknown"}</span>
-                <span>•</span>
-                <span>
-                  {post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  }) : 'No date'}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={hasUpvoted ? "secondary" : "outline"}
-                size="sm"
-                className="flex items-center gap-1"
-                onClick={handleUpvote}
-              >
-                <ThumbsUp className={`w-4 h-4 ${hasUpvoted ? "fill-current" : ""}`} />
-                <span>{post.upvotes.length}</span>
-              </Button>
-              {isAuthor && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/post/${post.id}/edit`)}
-                >
-                  Edit Post
-                </Button>
-              )}
-            </div>
-          </div>
-          
-          <div className="prose max-w-none mb-8">
-            {post.content}
-          </div>
-
-          {/* Reply Section */}
-          <div className="border-t pt-6">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <MessageCircle className="w-5 h-5" />
-              Replies ({post.replies.length})
-            </h2>
-            
-            {user ? (
-              <form onSubmit={handleReply} className="mb-6">
-                <Textarea
-                  value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder="Write your reply..."
-                  className="mb-4"
-                  rows={3}
-                />
-                <Button
-                  type="submit"
-                  disabled={isSubmitting || !replyContent.trim()}
-                  className="flex items-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <span className="mr-2">Posting</span>
-                      <span className="animate-spin">⚪</span>
-                    </>
-                  ) : (
-                    <>
-                      <MessageCircle className="w-4 h-4" />
-                      Post Reply
-                    </>
-                  )}
-                </Button>
-              </form>
+        {!user ? (
+          <Card className="p-8 text-center">
+            <h2 className="text-2xl font-bold mb-4">Access Restricted</h2>
+            <p className="text-gray-600 mb-6">Please log in to view this post and interact with the community.</p>
+            <Button 
+              variant="primary"
+              onClick={() => navigate('/login')}
+            >
+              Log In to Continue
+            </Button>
+          </Card>
+        ) : (
+          <>
+            {isLoading || !post ? (
+              <p>Loading...</p>
             ) : (
-              <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                <p className="text-gray-600">
-                  Please <Button variant="secondary" onClick={() => navigate('/login')}>log in</Button> to reply to this post.
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {post.replies.map((reply) => (
-                <Card key={reply.id} className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <span className="font-medium">{reply.user?.name || reply.user?.email}</span>
-                      <span className="text-gray-500 text-sm ml-2">
-                        {reply.createdAt ? new Date(reply.createdAt).toLocaleDateString('en-US', {
+              <Card className="p-6 mb-8">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{post.title}</h1>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <span>By {post.author.name || "Unknown"}</span>
+                      <span>•</span>
+                      <span>
+                        {post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric'
                         }) : 'No date'}
                       </span>
                     </div>
-                    {user?.userId === reply.user?.id && (
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={post.upvotes.some(upvote => upvote.userId === user.userId) ? "secondary" : "outline"}
+                      size="sm"
+                      className="flex items-center gap-1"
+                      onClick={handleUpvote}
+                    >
+                      <ThumbsUp className={`w-4 h-4 ${post.upvotes.some(upvote => upvote.userId === user.userId) ? "fill-current" : ""}`} />
+                      <span>{post.upvotes.length}</span>
+                    </Button>
+                    {user.userId === post.author.id && (
                       <Button
-                        variant="secondary"
+                        variant="outline"
                         size="sm"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDeleteReply(reply.id)}
+                        onClick={() => navigate(`/post/${post.id}/edit`)}
                       >
-                        Delete
+                        Edit Post
                       </Button>
                     )}
                   </div>
-                  <p className="text-gray-700">{reply.content}</p>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </Card>
+                </div>
+                
+                <div className="prose max-w-none mb-8">
+                  {post.content}
+                </div>
+
+                {/* Reply Section */}
+                <div className="border-t pt-6">
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5" />
+                    Replies ({post.replies.length})
+                  </h2>
+                  
+                  <form onSubmit={handleReply} className="mb-6">
+                    <Textarea
+                      value={replyContent}
+                      onChange={(e) => setReplyContent(e.target.value)}
+                      placeholder="Write your reply..."
+                      className="mb-4"
+                      rows={3}
+                    />
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting || !replyContent.trim()}
+                      className="flex items-center gap-2"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="mr-2">Posting</span>
+                          <span className="animate-spin">⚪</span>
+                        </>
+                      ) : (
+                        <>
+                          <MessageCircle className="w-4 h-4" />
+                          Post Reply
+                        </>
+                      )}
+                    </Button>
+                  </form>
+
+                  <div className="space-y-4">
+                    {post.replies.map((reply) => (
+                      <Card key={reply.id} className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="font-medium">{reply.user?.name || reply.user?.email}</span>
+                            <span className="text-gray-500 text-sm ml-2">
+                              {reply.createdAt ? new Date(reply.createdAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              }) : 'No date'}
+                            </span>
+                          </div>
+                          {user.userId === reply.user?.id && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteReply(reply.id)}
+                            >
+                              Delete
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-gray-700">{reply.content}</p>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            )}
+          </>
+        )}
       </div>
     </MainLayout>
   );
