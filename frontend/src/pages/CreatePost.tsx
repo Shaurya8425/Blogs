@@ -21,12 +21,14 @@ export const CreatePost = () => {
 
     setIsSubmitting(true);
     try {
-      const post = await blogService.createPost({
+      await blogService.createPost({
         title: title.trim(),
         content: content.trim(),
       });
       toast.success('Post created successfully!');
-      navigate(`/post/${post.id}`);
+      // Dispatch a custom event to notify Home component
+      window.dispatchEvent(new CustomEvent('post-created'));
+      navigate('/', { replace: true }); // Use replace to prevent going back to create form
     } catch (error) {
       console.error("Error creating post:", error);
       toast.error('Failed to create post');

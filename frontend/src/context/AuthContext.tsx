@@ -29,25 +29,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [error, setError] = useState<string | null>(null);
 
   const loadUser = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        const userData = await authService.getCurrentUser();
-        // The user data from /me endpoint is different from the JWT payload
-        // We need to use the JWT payload structure for consistency
-        setUser({
-          userId: userData.id || userData.userId || "",
-          email: userData.email,
-          name: userData.name,
-          iat: 0, // These values don't matter for our use case
-          exp: 0,
-        });
-      } else {
-        setUser(null);
+      const userData = await authService.getCurrentUser();
+      if (!userData) {
+        throw new Error("No user data received");
       }
+
+      setUser({
+        userId: userData.id || userData.userId || "",
+        email: userData.email,
+        name: userData.name,
+        iat: 0,
+        exp: 0,
+      });
     } catch (err) {
       console.error("Error loading user:", err);
       setError("Failed to load user data");
+      localStorage.removeItem("token");
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -62,8 +67,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       setIsLoading(true);
       setError(null);
-      await authService.login({ email, password });
-      await loadUser(); // Reload user data after successful login
+      const response = await authService.login({ email, password });
+      localStorage.setItem("token", response.token);
+      await loadUser();
     } catch (err) {
       console.error("Login error:", err);
       setError(err instanceof Error ? err.message : "Failed to login");
@@ -74,7 +80,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const logout = () => {
-    authService.logout();
+    localStorage.removeItem("token");
     setUser(null);
   };
 
