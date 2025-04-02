@@ -7,6 +7,7 @@ import userRoutes from "./routes/userRoutes";
 // Define the type for your environment variables
 type Bindings = {
   DATABASE_URL: string;
+  JWT_SECRET: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();

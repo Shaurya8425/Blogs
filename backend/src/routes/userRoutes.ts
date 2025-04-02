@@ -1,14 +1,18 @@
 import { Hono } from "hono";
-import { getPrismaClient } from "../prismaClient";
-import { verifyToken } from "../middleware/auth";
+import { createPrismaClient } from "../prismaClient";
+import { Bindings, JWTPayload, verifyToken } from "../middleware/auth";
+import { Prisma } from "@prisma/client/edge";
 import bcrypt from "bcryptjs";
 
-const router = new Hono();
+const router = new Hono<{
+  Bindings: Bindings;
+  Variables: { user: JWTPayload };
+}>();
 
 // Get user profile
 router.get("/:userId", verifyToken, async (c) => {
   try {
-    const prisma = getPrismaClient(c.env);
+    const prisma = createPrismaClient(c.env.DATABASE_URL);
     const user = await prisma.user.findUnique({
       where: { id: c.req.param("userId") },
       select: {
@@ -40,7 +44,7 @@ router.put("/:userId", verifyToken, async (c) => {
       return c.json({ message: "Not authorized to update this profile" }, 403);
     }
 
-    const prisma = getPrismaClient(c.env);
+    const prisma = createPrismaClient(c.env.DATABASE_URL);
     const { name, currentPassword, newPassword } = await c.req.json();
 
     // If password change is requested
@@ -98,7 +102,10 @@ router.put("/:userId", verifyToken, async (c) => {
     return c.json(updatedUser);
   } catch (error) {
     console.error("Error updating user profile:", error);
-    if (error.code === "P2025") {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
       return c.json({ message: "User not found" }, 404);
     }
     return c.json({ message: "Internal server error" }, 500);
@@ -108,7 +115,7 @@ router.put("/:userId", verifyToken, async (c) => {
 // Get user's posts
 router.get("/:userId/posts", verifyToken, async (c) => {
   try {
-    const prisma = getPrismaClient(c.env);
+    const prisma = createPrismaClient(c.env.DATABASE_URL);
     const posts = await prisma.post.findMany({
       where: { authorId: c.req.param("userId") },
       include: {
