@@ -20,26 +20,26 @@ const authRoutes = new Hono<{
 authRoutes.get("/me", verifyToken, async (c) => {
   const user = c.get("user");
   return c.json({
-    message: "Protected route accessed successfully",
     user: {
       id: user.userId,
       email: user.email,
       name: user.name || null,
     },
+    message: "Protected route accessed successfully",
   });
 });
 
 authRoutes.post("/signup", rateLimiter, async (c) => {
   try {
-    const { username, password, name } = await c.req.json();
+    const { email, password, name } = await c.req.json();
 
-    if (!username || !password) {
-      return c.json({ error: "Username and password are required" }, 400);
+    if (!email || !password) {
+      return c.json({ error: "Email and password are required" }, 400);
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(username)) {
+    if (!emailRegex.test(email)) {
       return c.json({ error: "Invalid email format" }, 400);
     }
 
@@ -54,7 +54,7 @@ authRoutes.post("/signup", rateLimiter, async (c) => {
 
     const user = await prisma.user.create({
       data: {
-        email: username,
+        email: email,
         password: hashedPassword,
         name: name || null,
       },
@@ -69,16 +69,15 @@ authRoutes.post("/signup", rateLimiter, async (c) => {
       c.env.JWT_SECRET
     );
 
-    return c.json(
-      {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        token,
-        message: "User created successfully",
+    return c.json({
+      user: {
+        id: userWithoutPassword.id,
+        email: userWithoutPassword.email,
+        name: userWithoutPassword.name,
       },
-      201
-    );
+      token,
+      message: "User created successfully",
+    });
   } catch (error) {
     console.error("Signup error:", error);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -93,17 +92,17 @@ authRoutes.post("/signup", rateLimiter, async (c) => {
 // Add rate limiting to login route
 authRoutes.post("/login", rateLimiter, async (c) => {
   try {
-    const { username, password } = await c.req.json();
+    const { email, password } = await c.req.json();
 
-    if (!username || !password) {
-      return c.json({ error: "Username and password are required" }, 400);
+    if (!email || !password) {
+      return c.json({ error: "Email and password are required" }, 400);
     }
 
     const prisma = createPrismaClient(c.env.DATABASE_URL);
 
     const user = await prisma.user.findUnique({
       where: {
-        email: username,
+        email: email,
       },
     });
 
@@ -127,7 +126,11 @@ authRoutes.post("/login", rateLimiter, async (c) => {
     );
 
     return c.json({
-      ...userWithoutPassword,
+      user: {
+        id: userWithoutPassword.id,
+        email: userWithoutPassword.email,
+        name: userWithoutPassword.name,
+      },
       token,
       message: "Login successful",
     });

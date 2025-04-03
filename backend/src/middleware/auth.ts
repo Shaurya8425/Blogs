@@ -29,18 +29,36 @@ export async function verifyToken(
   next: Next
 ) {
   try {
+    // Skip token check for login and signup endpoints
+    const path = new URL(c.req.url).pathname;
+    if (path.endsWith('/login') || path.endsWith('/signup')) {
+      await next();
+      return;
+    }
+
     const authHeader = c.req.header("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return c.json({ error: "No token provided" }, 401);
     }
 
     const token = authHeader.split(" ")[1];
+    if (!c.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not configured');
+      return c.json({ error: "Server configuration error" }, 500);
+    }
+
     const secretKey = new TextEncoder().encode(c.env.JWT_SECRET);
-    const { payload } = await jose.jwtVerify(token, secretKey);
-    c.set("user", payload as JWTPayload);
-    await next();
+    try {
+      const { payload } = await jose.jwtVerify(token, secretKey);
+      c.set("user", payload as JWTPayload);
+      await next();
+    } catch (jwtError) {
+      console.error('JWT verification failed:', jwtError);
+      return c.json({ error: "Invalid or expired token" }, 401);
+    }
   } catch (error) {
-    return c.json({ error: "Invalid token" }, 401);
+    console.error('Auth middleware error:', error);
+    return c.json({ error: "Authentication failed" }, 500);
   }
 }
 

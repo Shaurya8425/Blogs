@@ -13,40 +13,44 @@ type Bindings = {
 const app = new Hono<{ Bindings: Bindings }>();
 
 // Add CORS middleware
-app.use(
-  "/*",
-  cors({
-    origin: [
-      // Local development URLs
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-      "http://localhost:5174",
-      "http://127.0.0.1:5174",
-      "http://localhost:5175",
-      "http://127.0.0.1:5175",
-      "http://localhost:5176",
-      "http://127.0.0.1:5176",
-      "http://localhost:5177",
-      "http://127.0.0.1:5177",
-      // Backend URL
-      "https://backend.shaurya-y321.workers.dev",
-      // New Vercel deployment URLs
-      "https://blogs-pi-taupe.vercel.app",
-      "https://blogs-shauryay321-gmailcoms-projects.vercel.app",
-      "https://blogs-git-main-shauryay321-gmailcoms-projects.vercel.app",
-    ],
-    allowMethods: ["POST", "GET", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "Accept",
-    ],
-    exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
-    maxAge: 86400,
-    credentials: true,
-  })
-);
+app.use("*", async (c, next) => {
+  const allowedOrigins = [
+    'https://blogs-pi-taupe.vercel.app',
+    'https://blogs-shauryay321-gmailcoms-projects.vercel.app',
+    'https://blogs-git-main-shauryay321-gmailcoms-projects.vercel.app',
+    'http://localhost:5180', // Local development URL
+    'http://127.0.0.1:5180',
+    'http://localhost:8787',
+    'http://127.0.0.1:8787'
+  ];
+  const origin = c.req.header('Origin');
+  
+  // Add CORS headers
+  if (origin && allowedOrigins.includes(origin)) {
+    c.header('Access-Control-Allow-Origin', origin);
+  }
+  c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  c.header('Access-Control-Max-Age', '86400');
+  
+  // Handle OPTIONS request
+  if (c.req.method === 'OPTIONS') {
+    const headers = new Headers();
+    if (origin && allowedOrigins.includes(origin)) {
+      headers.set('Access-Control-Allow-Origin', origin);
+    }
+    headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+    headers.set('Access-Control-Max-Age', '86400');
+    
+    return new Response(null, {
+      status: 204,
+      headers
+    });
+  }
+  
+  await next();
+});
 
 // Health check endpoint
 app.get("/", (c) => c.json({ status: "ok" }));
@@ -62,7 +66,7 @@ app.use("/api/v1/blog", async (c, next) => {
   await next();
 });
 app.route("/api/v1/blog", blogRoutes);
-app.route("/api/v1", authRoutes);
+app.route("/api/v1/auth", authRoutes);
 app.route("/api/v1/users", userRoutes);
 
 export default app;
