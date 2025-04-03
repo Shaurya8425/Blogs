@@ -63,7 +63,7 @@ export const EditPost = () => {
   };
 
   const handleCancel = () => {
-    navigate(-1); // Go back to previous page
+    navigate(`/profile/${user?.userId}`); // Navigate directly to profile
   };
 
   if (isLoading) {

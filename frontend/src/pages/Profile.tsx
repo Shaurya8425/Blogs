@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Post, blogService } from "../services/blog";
 import { MainLayout } from "../components/layout/MainLayout";
@@ -10,19 +10,29 @@ import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { DeleteConfirmation } from "../components/common/DeleteConfirmation";
 import { ThumbsUp } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import debounce from "lodash/debounce";
+import { LoadingSpinner } from "../components/common/LoadingSpinner";
+
+interface UserProfile {
+  id: string;
+  name: string | null;
+  email: string;
+}
+
+interface UpdateProfileData {
+  name?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
 
 export function Profile() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
-  const [profileUser, setProfileUser] = useState<{
-    id: string;
-    name: string | null;
-    email: string;
-  } | null>(null);
+  const [profileUser, setProfileUser] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -33,33 +43,112 @@ export function Profile() {
   const [deletingPost, setDeletingPost] = useState<Post | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        // If no userId is provided in URL, use the logged-in user's ID
-        const targetUserId = userId || user?.userId;
-        if (!targetUserId) {
-          setError("No user found");
-          return;
-        }
-
-        const userPosts = await blogService.getUserPosts(targetUserId);
-        setPosts(userPosts);
-
-        // Get user profile data
-        const userData = await blogService.getUserProfile(targetUserId);
-        setProfileUser(userData);
-        setName(userData.name || "");
-      } catch (err: any) {
-        console.error("Error loading profile:", err);
-        setError(err.message || "Failed to load profile");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadProfile();
+  // Calculate if this is the user's own profile
+  const isOwnProfile = useMemo(() => {
+    return (!userId && !!user?.userId) || userId === user?.userId;
   }, [userId, user?.userId]);
+
+  // Reset edit state and form data when component mounts or userId/profileUser changes
+  useEffect(() => {
+    setIsEditing(false);
+    if (profileUser) {
+      setName(profileUser.name || "");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    }
+  }, [userId, profileUser]);
+
+  // Query for profile
+  const { isLoading: isLoadingProfile, refetch: refetchProfile } = useQuery({
+    queryKey: ["userProfile", userId || user?.userId],
+    queryFn: async () => {
+      try {
+        const data = await blogService.getUserProfile(userId || user?.userId || "");
+        setProfileUser(data);
+        setName(data.name || "");
+        return data;
+      } catch (err) {
+        const error = err as Error;
+        setError(error.message || "Failed to load profile");
+        throw error;
+      }
+    },
+    enabled: !!userId || !!user?.userId,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 0 // Always fetch fresh data
+  });
+
+  // Query for posts
+  const { data: posts = [], isLoading: isLoadingPosts, refetch: refetchPosts } = useQuery({
+    queryKey: ["userPosts", userId || user?.userId],
+    queryFn: () => blogService.getUserPosts(userId || user?.userId || ""),
+    enabled: !!userId || !!user?.userId,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 0 // Always fetch fresh data
+  });
+
+  // Show loading state while either posts or profile is loading
+  const isLoading = isLoadingPosts || isLoadingProfile;
+
+  // Debounced upvote handler
+  const debouncedUpvote = useCallback(
+    debounce(async (postId: string, hasUpvoted: boolean) => {
+      try {
+        if (hasUpvoted) {
+          await blogService.removeUpvote(postId);
+        } else {
+          await blogService.upvotePost(postId);
+        }
+        // Invalidate both user posts and individual post queries
+        await queryClient.invalidateQueries({ queryKey: ["userPosts"] });
+        await queryClient.invalidateQueries({ queryKey: ["post", postId] });
+      } catch (error) {
+        console.error("Error handling upvote:", error);
+        toast.error("Failed to update upvote");
+        // Force refetch to sync with server state
+        await queryClient.invalidateQueries({ queryKey: ["userPosts"] });
+      }
+    }, 300),
+    [queryClient]
+  );
+
+  const handleUpvote = async (postId: string) => {
+    const post = posts.find((p: Post) => p.id === postId);
+    if (!post) return;
+
+    const hasUpvoted = post.upvotes.some(
+      (upvote: { userId: string }) => upvote.userId === user?.userId
+    );
+
+    // Optimistic update
+    queryClient.setQueryData<Post[]>(["userPosts", userId || user?.userId], (old) =>
+      (old || []).map((p: Post) => {
+        if (p.id === postId) {
+          return {
+            ...p,
+            upvotes: hasUpvoted
+              ? p.upvotes.filter((u: { userId: string }) => u.userId !== user?.userId)
+              : [
+                  ...p.upvotes,
+                  {
+                    userId: user?.userId || "",
+                    postId,
+                    id: "temp",
+                    createdAt: new Date().toISOString(),
+                  },
+                ],
+          };
+        }
+        return p;
+      })
+    );
+
+    // Call debounced upvote
+    debouncedUpvote(postId, hasUpvoted);
+  };
 
   const formatDate = (dateString: string | undefined) => {
     try {
@@ -93,55 +182,81 @@ export function Profile() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
+  // Password validation
+  const validatePassword = (password: string) => {
+    if (password.length < 8) {
+      return "Password must be at least 8 characters long";
+    }
+    if (!/[A-Z]/.test(password)) {
+      return "Password must contain at least one uppercase letter";
+    }
+    if (!/[a-z]/.test(password)) {
+      return "Password must contain at least one lowercase letter";
+    }
+    if (!/[0-9]/.test(password)) {
+      return "Password must contain at least one number";
+    }
+    return null;
+  };
 
-    // Validate passwords if changing password
-    if (newPassword || currentPassword) {
+  // Form validation
+  const validateForm = () => {
+    if (newPassword || confirmPassword || currentPassword) {
       if (!currentPassword) {
-        toast.error("Current password is required");
-        return;
-      }
-      if (!newPassword) {
-        toast.error("New password is required");
-        return;
+        setError("Current password is required to change password");
+        return false;
       }
       if (newPassword !== confirmPassword) {
-        toast.error("Passwords do not match");
-        return;
+        setError("New password and confirm password do not match");
+        return false;
+      }
+      const passwordError = validatePassword(newPassword);
+      if (passwordError) {
+        setError(passwordError);
+        return false;
       }
     }
+    return true;
+  };
+
+  const resetForm = () => {
+    setName(profileUser?.name || "");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setError(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
 
     setIsSubmitting(true);
+    setError(null);
+
     try {
-      if (!profileUser?.id) {
-        throw new Error("No user profile found");
-      }
+      const data: UpdateProfileData = {
+        name: name.trim(),
+        ...(newPassword && {
+          currentPassword,
+          newPassword,
+        }),
+      };
 
-      const updateData: { name?: string; currentPassword?: string; newPassword?: string } = {};
-      if (name !== profileUser.name) {
-        updateData.name = name;
-      }
-      if (currentPassword && newPassword) {
-        updateData.currentPassword = currentPassword;
-        updateData.newPassword = newPassword;
-      }
-
-      const updatedProfile = await blogService.updateUserProfile(profileUser.id, updateData);
-      
-      // Update the UI
-      setProfileUser(updatedProfile);
-      setIsEditing(false);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      toast.success("Profile updated successfully");
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to update profile"
+      const updatedProfile = await blogService.updateUserProfile(
+        user?.userId || "",
+        data
       );
+
+      setProfileUser(updatedProfile);
+      resetForm();
+      setIsEditing(false);
+      // Refetch profile data after successful update
+      await refetchProfile();
+      toast.success("Profile updated successfully");
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || "Failed to update profile");
     } finally {
       setIsSubmitting(false);
     }
@@ -149,17 +264,19 @@ export function Profile() {
 
   const handleDelete = async () => {
     if (!deletingPost) return;
-    
+
     setIsDeleting(true);
     try {
       await blogService.deletePost(deletingPost.id);
-      setPosts(posts.filter((p) => p.id !== deletingPost.id));
-    } catch (error) {
-      console.error('Error deleting post:', error);
-    } finally {
-      setIsDeleting(false);
       setShowDeleteConfirm(false);
       setDeletingPost(null);
+      // Refetch posts after successful deletion
+      await refetchPosts();
+      toast.success("Post deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete post");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -168,78 +285,41 @@ export function Profile() {
     setShowDeleteConfirm(true);
   };
 
-  const handleUpvote = async (postId: string) => {
-    try {
-      const hasUpvoted = posts.find(p => p.id === postId)?.upvotes.some(upvote => upvote.userId === user?.userId);
-      
-      // Optimistic update
-      setPosts(posts.map(p => {
-        if (p.id === postId) {
-          return {
-            ...p,
-            upvotes: hasUpvoted
-              ? p.upvotes.filter(u => u.userId !== user?.userId)
-              : [...p.upvotes, { 
-                  userId: user?.userId || '', 
-                  postId, 
-                  id: 'temp',
-                  createdAt: new Date().toISOString()
-                }]
-          };
-        }
-        return p;
-      }));
-
-      if (hasUpvoted) {
-        await blogService.removeUpvote(postId);
-      } else {
-        await blogService.upvotePost(postId);
-      }
-
-      // Refresh posts to get latest state
-      const updatedPosts = await blogService.getUserPosts(userId || user?.userId || '');
-      setPosts(updatedPosts);
-    } catch (error) {
-      console.error('Error handling upvote:', error);
-      toast.error('Failed to update upvote');
-      // Revert on error
-      const updatedPosts = await blogService.getUserPosts(userId || user?.userId || '');
-      setPosts(updatedPosts);
+  const handleEditToggle = () => {
+    if (isEditing) {
+      // If canceling edit, reset form to current profile data
+      resetForm();
     }
+    setIsEditing(!isEditing);
   };
 
   if (isLoading) {
     return (
       <MainLayout>
-        <div className='flex justify-center items-center min-h-[60vh]'>
-          <p className='text-gray-600 animate-pulse'>Loading profile...</p>
+        <div className="flex justify-center items-center min-h-[200px]">
+          <LoadingSpinner size="large" />
         </div>
       </MainLayout>
     );
   }
 
-  if (error || !profileUser) {
+  if (error && !profileUser) {
     return (
       <MainLayout>
-        <div className='flex flex-col items-center justify-center min-h-[60vh]'>
-          <div className='bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-4'>
-            {error || "Profile not found"}
-          </div>
-          <Button variant='secondary' onClick={() => navigate("/")}>
-            Return to Home
+        <div className="min-h-screen flex flex-col items-center justify-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={() => navigate("/")} variant="primary">
+            Go Home
           </Button>
         </div>
       </MainLayout>
     );
   }
 
-  const isOwnProfile = user?.userId === profileUser.id;
-
   return (
     <MainLayout>
       <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6'>
-        {/* Profile Header */}
-        <div className='bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6 sm:mb-8'>
+        {profileUser && (
           <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
             <div>
               <h1 className='text-xl sm:text-2xl font-bold text-gray-900'>
@@ -250,91 +330,95 @@ export function Profile() {
             {isOwnProfile && (
               <Button
                 variant={isEditing ? 'outline' : 'default'}
-                onClick={() => setIsEditing(!isEditing)}
+                onClick={handleEditToggle}
                 className='w-full sm:w-auto'
               >
                 {isEditing ? 'Cancel' : 'Edit Profile'}
               </Button>
             )}
           </div>
-        </div>
+        )}
 
         {/* Edit Profile Form */}
-        {isEditing && (
-          <Card className="p-6 mb-8">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Edit Profile</h2>
-              <p className="text-sm text-gray-500">Update your personal information</p>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-sm font-medium text-gray-700">
+        {isOwnProfile && isEditing && profileUser && (
+          <Card className='mt-6 p-6'>
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-red-600">{error}</p>
+              </div>
+            )}
+            <form onSubmit={handleSubmit} className='space-y-4'>
+              <div>
+                <label htmlFor="name" className='block text-sm font-medium text-gray-700'>
                   Name
                 </label>
                 <Input
                   id="name"
+                  type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full"
-                  placeholder="Enter your name"
+                  className="w-full mt-1"
+                  placeholder="Your name"
                 />
               </div>
-              <div className="space-y-2">
-                <label htmlFor="currentPassword" className="text-sm font-medium text-gray-700">
-                  Current Password
+
+              <div>
+                <label htmlFor="currentPassword" className='block text-sm font-medium text-gray-700'>
+                  Current Password (required for password change)
                 </label>
                 <Input
                   id="currentPassword"
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full"
-                  placeholder="Enter current password"
+                  className="w-full mt-1"
+                  placeholder="Current password"
                 />
               </div>
-              <div className="space-y-2">
-                <label htmlFor="newPassword" className="text-sm font-medium text-gray-700">
-                  New Password
+
+              <div>
+                <label htmlFor="newPassword" className='block text-sm font-medium text-gray-700'>
+                  New Password (optional)
                 </label>
                 <Input
                   id="newPassword"
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full"
-                  placeholder="Enter new password"
+                  className="w-full mt-1"
+                  placeholder="New password"
                 />
               </div>
-              <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
-                  Confirm New Password
+
+              <div>
+                <label htmlFor="confirmPassword" className='block text-sm font-medium text-gray-700'>
+                  Confirm Password
                 </label>
                 <Input
                   id="confirmPassword"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full"
+                  className="w-full mt-1"
                   placeholder="Confirm new password"
                 />
               </div>
-              <div className="pt-4">
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full"
-                  variant="primary"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <span className="mr-2">Saving changes</span>
-                      <span className="animate-spin">⚪</span>
-                    </>
-                  ) : (
-                    'Save Changes'
-                  )}
-                </Button>
-              </div>
+
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full"
+                variant="primary"
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="mr-2">Saving changes</span>
+                    <LoadingSpinner size="small" />
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
             </form>
           </Card>
         )}
@@ -394,11 +478,7 @@ export function Profile() {
                 </div>
                 <p className="text-gray-600 line-clamp-3 mb-4">{post.content}</p>
                 <div className="text-sm text-gray-500">
-                  {post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  }) : 'No date'}
+                  {post.createdAt ? formatDate(post.createdAt) : 'No date'}
                 </div>
               </Card>
             ))}
