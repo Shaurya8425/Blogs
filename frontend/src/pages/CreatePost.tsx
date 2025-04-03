@@ -77,7 +77,7 @@ export const CreatePost = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate('/')}
+                onClick={() => navigate(-1)} // Go back to the previous page
               >
                 Cancel
               </Button>
