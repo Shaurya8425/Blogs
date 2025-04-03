@@ -165,9 +165,8 @@ export const Home = () => {
                 Edit
               </Button>
               <Button
-                variant="outline"
+                variant="danger"
                 size="sm"
-                className="hover:bg-red-50 hover:text-red-600 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   openDeleteConfirm(e, post);
