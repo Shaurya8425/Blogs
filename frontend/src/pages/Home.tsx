@@ -9,6 +9,7 @@ import { Button } from "../components/ui/button";
 import { DeleteConfirmation } from "../components/common/DeleteConfirmation";
 import { ThumbsUp } from "lucide-react";
 import { Card } from "../components/ui/card";
+import { LoadingSpinner } from "../components/common/LoadingSpinner"; // Import LoadingSpinner component
 
 export const Home = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -147,18 +148,8 @@ export const Home = () => {
   if (isAuthLoading) {
     return (
       <MainLayout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="h-12 bg-gray-200 rounded w-48 mb-8"></div>
-            <div className="space-y-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-lg p-6 shadow-sm">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="min-h-screen flex items-center justify-center">
+          <LoadingSpinner size="large" />
         </div>
       </MainLayout>
     );
@@ -167,8 +158,8 @@ export const Home = () => {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="container mx-auto px-4 py-8">
-          <p>Loading...</p>
+        <div className="min-h-screen flex items-center justify-center">
+          <LoadingSpinner size="large" />
         </div>
       </MainLayout>
     );
@@ -179,7 +170,7 @@ export const Home = () => {
       <div className="container mx-auto px-4 py-8">
         {!user ? (
           <Card className="p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">Welcome to Medium Blog</h2>
+            <h2 className="text-2xl font-bold mb-4">Welcome to sForStudy Blogs</h2>
             <p className="text-gray-600 mb-6">
               Please log in to access the blog posts and interact with the
               community.

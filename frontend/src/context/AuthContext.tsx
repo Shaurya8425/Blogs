@@ -103,11 +103,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setUser(null);
   };
 
-  // Wrap the children with a loading state
-  if (isLoading) {
-    return null; // Or return a minimal loading indicator
-  }
-
   const updateUser = (userData: { name: string | null }) => {
     if (user) {
       setUser({
