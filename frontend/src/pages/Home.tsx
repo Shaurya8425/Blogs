@@ -25,6 +25,38 @@ export const Home = () => {
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
   });
 
+  const formatDate = (dateString: string | undefined) => {
+    try {
+      if (!dateString) return "N/A";
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "N/A";
+
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+      const diffInMinutes = Math.floor(diffInSeconds / 60);
+      const diffInHours = Math.floor(diffInMinutes / 60);
+
+      if (diffInSeconds < 60) {
+        return "just now";
+      } else if (diffInMinutes < 60) {
+        return `${diffInMinutes} minute${diffInMinutes === 1 ? "" : "s"} ago`;
+      } else if (diffInHours < 24) {
+        return `${diffInHours} hour${diffInHours === 1 ? "" : "s"} ago`;
+      }
+
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "N/A";
+    }
+  };
+
   const handleUpvote = async (postId: string) => {
     if (!user) {
       navigate("/login");
@@ -96,8 +128,13 @@ export const Home = () => {
         </p>
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-500">
-              By {post.author?.name || "Unknown"}
+            <div className="flex flex-col text-sm">
+              <span className="text-gray-500">
+                By {post.author?.name || "Unknown"}
+              </span>
+              <span className="text-gray-400 text-xs">
+                {formatDate(post.createdAt)}
+              </span>
             </div>
             <Button
               variant={hasUpvoted ? "secondary" : "outline"}
