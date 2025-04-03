@@ -102,3 +102,5 @@ export const CreatePost = () => {
     </MainLayout>
   );
 };
+
+export default CreatePost;

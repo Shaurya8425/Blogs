@@ -425,3 +425,5 @@ export function Profile() {
     </MainLayout>
   );
 }
+
+export default Profile;

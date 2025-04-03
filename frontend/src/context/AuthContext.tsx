@@ -15,6 +15,7 @@ interface AuthContextType {
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUser: (userData: { name: string | null }) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -37,13 +38,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       const userData = await authService.getCurrentUser();
-      setUser({
-        userId: userData.id || userData.userId || "",
-        email: userData.email,
-        name: userData.name,
-        iat: 0,
-        exp: 0,
-      });
+      if (userData.user) {
+        // Handle response from login/signup
+        setUser({
+          userId: userData.user.id,
+          email: userData.user.email,
+          name: userData.user.name,
+          iat: 0,
+          exp: 0,
+        });
+      } else {
+        // Handle response from getCurrentUser
+        setUser({
+          userId: userData.id || "",
+          email: userData.email,
+          name: userData.name,
+          iat: 0,
+          exp: 0,
+        });
+      }
     } catch (err) {
       console.error("Error loading user:", err);
       setError("Failed to load user data");
@@ -56,6 +69,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+    setIsLoading(true); // Ensure loading state is true before checking token
     if (!token) {
       setIsLoading(false);
       return;
@@ -67,8 +81,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       setIsLoading(true);
       setError(null);
-      await authService.login({ email, password });
-      await loadUser(); // Reload user data after successful login
+      const response = await authService.login({ email, password });
+      setUser({
+        userId: response.user.id,
+        email: response.user.email,
+        name: response.user.name,
+        iat: 0,
+        exp: 0,
+      });
     } catch (err) {
       console.error("Login error:", err);
       setError(err instanceof Error ? err.message : "Failed to login");
@@ -83,8 +103,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setUser(null);
   };
 
+  // Wrap the children with a loading state
+  if (isLoading) {
+    return null; // Or return a minimal loading indicator
+  }
+
+  const updateUser = (userData: { name: string | null }) => {
+    if (user) {
+      setUser({
+        ...user,
+        name: userData.name
+      });
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, error, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, error, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,10 +1,16 @@
 import { api } from "./api";
+import { queryClient } from "./blog";
 
 export interface User {
   id?: string;
   userId?: string;
   email: string;
   name: string | null;
+  user?: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
 }
 
 export interface LoginData {
@@ -19,23 +25,11 @@ export interface SignupData {
 }
 
 export interface AuthResponse {
-  user: User;
-  token: string;
-  message: string;
-}
-
-interface LoginResponse {
-  id: string;
-  email: string;
-  name: string | null;
-  token: string;
-  message: string;
-}
-
-interface SignupResponse {
-  id: string;
-  email: string;
-  name: string | null;
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
   token: string;
   message: string;
 }
@@ -43,76 +37,48 @@ interface SignupResponse {
 export const authService = {
   login: async (data: LoginData): Promise<AuthResponse> => {
     try {
-      const loginData = {
-        username: data.email,
-        password: data.password,
-      };
-      const response = await api.post<LoginResponse>("/login", loginData);
+      const response = await api.post<AuthResponse>("/auth/login", data);
       if (!response.data) {
-        throw new Error("Invalid credentials");
+        throw new Error("No response data from login");
       }
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-      }
-      return {
-        user: {
-          userId: response.data.id,
-          email: response.data.email,
-          name: response.data.name,
-        },
-        token: response.data.token,
-        message: response.data.message,
-      };
-    } catch (error: any) {
-      if (error.message.includes("401")) {
-        throw new Error("Invalid email or password");
-      }
-      throw new Error(error.message || "Failed to login");
+      localStorage.setItem("token", response.data.token);
+      await queryClient.resetQueries();
+      return response.data;
+    } catch (error) {
+      localStorage.removeItem("token");
+      throw error;
     }
   },
 
   signup: async (data: SignupData): Promise<AuthResponse> => {
     try {
-      const signupData = {
-        username: data.email,
-        password: data.password,
-        name: data.name,
-      };
-      const response = await api.post<SignupResponse>("/signup", signupData);
+      const response = await api.post<AuthResponse>("/auth/signup", data);
       if (!response.data) {
-        throw new Error("No data received from server");
+        throw new Error("No response data from signup");
       }
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-      }
-      return {
-        user: {
-          id: response.data.id,
-          email: response.data.email,
-          name: response.data.name,
-        },
-        token: response.data.token,
-        message: response.data.message,
-      };
+      localStorage.setItem("token", response.data.token);
+      await queryClient.resetQueries();
+      return response.data;
     } catch (error) {
-      console.error("Signup error:", error);
+      localStorage.removeItem("token");
       throw error;
     }
   },
 
   logout: () => {
     localStorage.removeItem("token");
+    queryClient.clear();
   },
 
   getCurrentUser: async (): Promise<User> => {
     try {
-      const response = await api.get<{ message: string; user: User }>("/me");
-      if (!response.data?.user) {
-        throw new Error("No user data received from server");
+      const response = await api.get<User>("/auth/me");
+      if (!response.data) {
+        throw new Error("No user data found");
       }
-      return response.data.user;
+      return response.data;
     } catch (error) {
-      console.error("Get current user error:", error);
+      localStorage.removeItem("token");
       throw error;
     }
   },

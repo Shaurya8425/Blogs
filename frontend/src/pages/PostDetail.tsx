@@ -249,3 +249,5 @@ export const PostDetail = () => {
     </MainLayout>
   );
 };
+
+export default PostDetail;

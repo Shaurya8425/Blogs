@@ -1,18 +1,15 @@
-import { ReactNode } from "react";
-import { Navbar } from "./Navbar";
-import { Footer } from "./Footer";
+import { Navbar } from './Navbar';
+import { Footer } from './Footer';
 
 interface MainLayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-export const MainLayout = ({ children }: MainLayoutProps) => {
+export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
-    <div className='min-h-screen bg-gray-50 flex flex-col'>
+    <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className='flex-grow py-12 px-4 sm:px-6 lg:px-8'>
-        <div className='max-w-7xl mx-auto'>{children}</div>
-      </main>
+      <main className="flex-grow">{children}</main>
       <Footer />
     </div>
   );

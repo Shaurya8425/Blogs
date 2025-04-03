@@ -3,3 +3,8 @@ export interface ApiResponse<T> {
   error?: string;
   status: number;
 }
+
+export interface ApiError {
+  message: string;
+  status: number;
+}

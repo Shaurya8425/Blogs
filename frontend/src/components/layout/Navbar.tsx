@@ -5,13 +5,27 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 
 export const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     setIsMenuOpen(false);
   };
+
+  if (isLoading) {
+    return (
+      <nav className='bg-white shadow-sm sticky top-0 z-50'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='flex justify-between h-16'>
+            <div className='flex items-center'>
+              <div className='h-8 w-20 bg-gray-200 rounded animate-pulse'></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className='bg-white shadow-sm sticky top-0 z-50'>

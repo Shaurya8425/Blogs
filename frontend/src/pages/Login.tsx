@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "../components/common/Input";
 import { useAuth } from "../hooks/useAuth";
 
-export const Login = () => {
+const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -95,3 +95,5 @@ export const Login = () => {
     </div>
   );
 };
+
+export default Login;

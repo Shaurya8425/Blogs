@@ -1,4 +1,16 @@
 import { api } from "./api";
+import { QueryClient } from "@tanstack/react-query";
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // Data is considered fresh for 5 minutes
+      gcTime: 1000 * 60 * 30, // Cache is kept for 30 minutes (renamed from cacheTime in v5)
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 export interface Reply {
   id: string;
@@ -57,16 +69,20 @@ export interface UpdateProfileData {
 
 export const blogService = {
   getAllPosts: async (): Promise<Post[]> => {
-    const response = await api.get<Post[]>("/blog");
-    if (!response.data) {
-      throw new Error("Failed to fetch posts");
+    try {
+      const response = await api.get<Post[]>("/blog");
+      if (!response.data) {
+        throw new Error("Failed to fetch posts");
+      }
+      return response.data.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      throw error;
     }
-    // Sort posts by creation date in descending order (newest first)
-    return response.data.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
   },
 
   getPostById: async (id: string): Promise<Post> => {
@@ -82,6 +98,7 @@ export const blogService = {
     if (!response.data) {
       throw new Error("Failed to create post");
     }
+    await queryClient.invalidateQueries({ queryKey: ["posts"] });
     return response.data;
   },
 
@@ -90,22 +107,27 @@ export const blogService = {
     if (!response.data) {
       throw new Error(`Failed to update post with id ${id}`);
     }
+    await queryClient.invalidateQueries({ queryKey: ["posts"] });
+    await queryClient.invalidateQueries({ queryKey: ["post", id] });
     return response.data;
   },
 
   deletePost: async (id: string): Promise<void> => {
     await api.delete(`/blog/${id}`);
+    await queryClient.invalidateQueries({ queryKey: ["posts"] });
   },
 
   upvotePost: async (postId: string): Promise<Upvote> => {
     try {
       const response = await api.post<Upvote>(`/blog/${postId}/upvote`, {});
       if (!response.data) {
-        throw new Error('Failed to upvote post');
+        throw new Error("Failed to upvote post");
       }
+      await queryClient.invalidateQueries({ queryKey: ["posts"] });
+      await queryClient.invalidateQueries({ queryKey: ["post", postId] });
       return response.data;
     } catch (error) {
-      console.error('API Error:', error);
+      console.error("API Error:", error);
       throw error;
     }
   },
@@ -114,7 +136,7 @@ export const blogService = {
     try {
       await api.delete(`/blog/${postId}/upvote`);
     } catch (error) {
-      console.error('API Error:', error);
+      console.error("API Error:", error);
       throw error;
     }
   },

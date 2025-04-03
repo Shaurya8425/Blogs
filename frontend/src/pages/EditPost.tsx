@@ -149,3 +149,5 @@ export const EditPost = () => {
     </MainLayout>
   );
 };
+
+export default EditPost;
