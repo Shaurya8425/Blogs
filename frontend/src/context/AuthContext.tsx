@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, ReactNode } from "react";
 import { authService } from "../services/auth";
+import { useNavigate } from "react-router-dom";
 
 interface JWTPayload {
   userId: string;
@@ -28,6 +29,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<JWTPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const loadUser = async () => {
     try {
@@ -99,6 +101,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const logout = () => {
+    // First navigate to the home page
+    navigate("/");
+    // Then clear the auth state
     authService.logout();
     setUser(null);
   };
