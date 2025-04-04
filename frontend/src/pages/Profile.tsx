@@ -74,20 +74,22 @@ export function Profile() {
         throw error;
       }
     },
-    enabled: !!userId || !!user?.userId,
+    enabled: (!!userId || !!user?.userId) && !!user,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
-    staleTime: 0 // Always fetch fresh data
+    staleTime: 0,
+    retry: 1,
   });
 
   // Query for posts
   const { data: posts = [], isLoading: isLoadingPosts, refetch: refetchPosts } = useQuery({
     queryKey: ["userPosts", userId || user?.userId],
     queryFn: () => blogService.getUserPosts(userId || user?.userId || ""),
-    enabled: !!userId || !!user?.userId,
+    enabled: (!!userId || !!user?.userId) && !!user,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
-    staleTime: 0 // Always fetch fresh data
+    staleTime: 0,
+    retry: 1,
   });
 
   // Show loading state while either posts or profile is loading
@@ -318,117 +320,116 @@ export function Profile() {
 
   return (
     <MainLayout>
-      <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6'>
-        {profileUser && (
-          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+      <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
+        <Card className="p-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
-              <h1 className='text-xl sm:text-2xl font-bold text-gray-900'>
-                {profileUser.name || profileUser.email}
+              <h1 className="text-2xl font-bold mb-2">
+                {isOwnProfile ? "My Profile" : `${profileUser?.name || profileUser?.email}'s Profile`}
               </h1>
-              <p className='text-gray-600 text-sm sm:text-base'>{profileUser.email}</p>
+              <p className="text-gray-600">{profileUser?.email}</p>
             </div>
             {isOwnProfile && (
               <Button
-                variant={isEditing ? 'outline' : 'default'}
                 onClick={handleEditToggle}
-                className='w-full sm:w-auto'
+                variant="outline"
               >
-                {isEditing ? 'Cancel' : 'Edit Profile'}
+                {isEditing ? 'Cancel Editing' : 'Edit Profile'}
               </Button>
             )}
           </div>
-        )}
 
-        {/* Edit Profile Form */}
-        {isOwnProfile && isEditing && profileUser && (
-          <Card className='mt-6 p-6'>
-            {error && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-red-600">{error}</p>
-              </div>
-            )}
-            <form onSubmit={handleSubmit} className='space-y-4'>
-              <div>
-                <label htmlFor="name" className='block text-sm font-medium text-gray-700'>
-                  Name
-                </label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full mt-1"
-                  placeholder="Your name"
-                />
-              </div>
+          {isOwnProfile && (
+            <Card className="p-6 border border-gray-200">
+              {isEditing ? (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                      Name
+                    </label>
+                    <Input
+                      id="name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full mt-1"
+                      placeholder="Your name"
+                    />
+                  </div>
 
-              <div>
-                <label htmlFor="currentPassword" className='block text-sm font-medium text-gray-700'>
-                  Current Password (required for password change)
-                </label>
-                <Input
-                  id="currentPassword"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full mt-1"
-                  placeholder="Current password"
-                />
-              </div>
+                  <div>
+                    <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
+                      Current Password (required for password change)
+                    </label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full mt-1"
+                      placeholder="Current password"
+                    />
+                  </div>
 
-              <div>
-                <label htmlFor="newPassword" className='block text-sm font-medium text-gray-700'>
-                  New Password (optional)
-                </label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full mt-1"
-                  placeholder="New password"
-                />
-              </div>
+                  <div>
+                    <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+                      New Password (optional)
+                    </label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full mt-1"
+                      placeholder="New password"
+                    />
+                  </div>
 
-              <div>
-                <label htmlFor="confirmPassword" className='block text-sm font-medium text-gray-700'>
-                  Confirm Password
-                </label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full mt-1"
-                  placeholder="Confirm new password"
-                />
-              </div>
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                      Confirm Password
+                    </label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full mt-1"
+                      placeholder="Confirm new password"
+                    />
+                  </div>
 
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full"
-                variant="primary"
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="mr-2">Saving changes</span>
-                    <LoadingSpinner size="small" />
-                  </>
-                ) : (
-                  'Save Changes'
-                )}
-              </Button>
-            </form>
-          </Card>
-        )}
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full"
+                    variant="primary"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <span className="mr-2">Saving changes</span>
+                        <LoadingSpinner size="small" />
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
+                </form>
+              ) : (
+                <div>
+                  <p className="text-gray-600">{profileUser?.name}</p>
+                </div>
+              )}
+            </Card>
+          )}
+        </Card>
 
         {/* User's Posts */}
-        <div className='space-y-4 sm:space-y-6'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-4'>
+        <div className="space-y-4 sm:space-y-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Posts ({posts.length})
           </h2>
-          <div className='grid gap-4 sm:gap-6'>
+          <div className="grid gap-4 sm:gap-6">
             {posts.map((post) => (
               <Card 
                 key={post.id} 
@@ -483,7 +484,7 @@ export function Profile() {
               </Card>
             ))}
             {posts.length === 0 && (
-              <p className='text-gray-500 text-center py-8'>
+              <p className="text-gray-500 text-center py-8">
                 No posts yet. {isOwnProfile ? "Create your first post!" : ""}
               </p>
             )}

@@ -8,6 +8,11 @@ import userRoutes from "./routes/userRoutes";
 type Bindings = {
   DATABASE_URL: string;
   JWT_SECRET: string;
+  R2_ACCOUNT_ID: string;
+  R2_ACCESS_KEY_ID: string;
+  R2_SECRET_ACCESS_KEY: string;
+  R2_BUCKET_NAME: string;
+  CLOUDFLARE_ACCOUNT_ID: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -21,7 +26,9 @@ app.use("*", async (c, next) => {
     'http://localhost:5180', // Local development URL
     'http://127.0.0.1:5180',
     'http://localhost:8787',
-    'http://127.0.0.1:8787'
+    'http://127.0.0.1:8787',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
   ];
   const origin = c.req.header('Origin');
   
@@ -56,15 +63,6 @@ app.use("*", async (c, next) => {
 app.get("/", (c) => c.json({ status: "ok" }));
 
 // Register routes
-app.use("/api/v1/blog", async (c, next) => {
-  /* 
-  1. get the header
-  2. verify the header
-  if the header is correct, we can proceed
-  otherwise, return 403 status code
-  */
-  await next();
-});
 app.route("/api/v1/blog", blogRoutes);
 app.route("/api/v1/auth", authRoutes);
 app.route("/api/v1/users", userRoutes);

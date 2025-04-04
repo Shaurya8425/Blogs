@@ -132,46 +132,64 @@ export const PostDetail = () => {
         ) : (
           <>
             {isLoading || !post ? (
-              <p>Loading...</p>
+              <Card className="p-6 mb-8">
+                <div className="animate-pulse space-y-4">
+                  <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  <div className="h-64 bg-gray-200 rounded"></div>
+                </div>
+              </Card>
             ) : (
               <Card className="p-6 mb-8">
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
-                  <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{post.title}</h1>
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
-                      <span>By {post.author.name || "Unknown"}</span>
-                      <span className="hidden sm:inline">•</span>
-                      <span>
-                        {post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', {
+                <div className="mb-6">
+                  <h1 className="text-3xl font-bold mb-4">{post.title}</h1>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                      <span className="text-gray-600">
+                        By {post.author.name || post.author.email}
+                      </span>
+                      <span className="text-gray-400 mx-2">•</span>
+                      <span className="text-gray-600">
+                        {new Date(post.createdAt!).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric'
-                        }) : 'No date'}
+                        })}
                       </span>
                     </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                    <Button
-                      variant={post.upvotes.some(upvote => upvote.userId === user.userId) ? "secondary" : "outline"}
-                      size="sm"
-                      className="flex items-center gap-1 w-full sm:w-auto justify-center"
-                      onClick={handleUpvote}
-                    >
-                      <ThumbsUp className={`w-4 h-4 ${post.upvotes.some(upvote => upvote.userId === user.userId) ? "fill-current" : ""}`} />
-                      <span>{post.upvotes.length}</span>
-                    </Button>
-                    {user.userId === post.author.id && (
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
                         className="w-full sm:w-auto justify-center"
-                        onClick={() => navigate(`/post/${post.id}/edit`)}
+                        onClick={handleUpvote}
                       >
-                        Edit Post
+                        <ThumbsUp className={`w-4 h-4 ${post.upvotes.some(upvote => upvote.userId === user.userId) ? "fill-current" : ""}`} />
+                        <span>{post.upvotes.length}</span>
                       </Button>
-                    )}
+                      {user.userId === post.author.id && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full sm:w-auto justify-center"
+                          onClick={() => navigate(`/post/${post.id}/edit`)}
+                        >
+                          Edit Post
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                {post.imageUrl && (
+                  <div className="mb-8">
+                    <img
+                      src={post.imageUrl}
+                      alt={post.title}
+                      className="w-full max-h-[500px] object-cover rounded-lg"
+                    />
+                  </div>
+                )}
                 
                 <div className="prose max-w-none mb-8 break-words">
                   {post.content}

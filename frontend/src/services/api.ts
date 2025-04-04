@@ -33,9 +33,9 @@ const handleResponse = async <T>(
     const data = isJson ? await response.json() : null;
 
     if (!response.ok) {
-      throw new Error(
-        data?.message || `HTTP error! status: ${response.status}`
-      );
+      const errorMessage = data?.error || data?.message || `HTTP error! status: ${response.status}`;
+      const errorDetails = data?.details ? ` Details: ${data.details}` : '';
+      throw new Error(`${errorMessage}${errorDetails}`);
     }
 
     return { data, status: response.status };
@@ -69,7 +69,7 @@ export const api = {
     }
   },
 
-  post: async <T>(endpoint: string, body: any): Promise<ApiResponse<T>> => {
+  post: async <T>(endpoint: string, body: any, isFormData = false): Promise<ApiResponse<T>> => {
     try {
       const token = localStorage.getItem("token");
       console.log(
@@ -81,10 +81,10 @@ export const api = {
           method: "POST",
           mode: 'cors',
           headers: {
-            "Content-Type": "application/json",
             ...(token && { Authorization: `Bearer ${token}` }),
+            ...(!isFormData && { "Content-Type": "application/json" }),
           },
-          body: JSON.stringify(body),
+          body: isFormData ? body : JSON.stringify(body),
         }
       );
       return handleResponse<T>(response);
@@ -94,7 +94,7 @@ export const api = {
     }
   },
 
-  put: async <T>(endpoint: string, body: any): Promise<ApiResponse<T>> => {
+  put: async <T>(endpoint: string, body: any, isFormData = false): Promise<ApiResponse<T>> => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
@@ -103,10 +103,10 @@ export const api = {
           method: "PUT",
           mode: 'cors',
           headers: {
-            "Content-Type": "application/json",
             ...(token && { Authorization: `Bearer ${token}` }),
+            ...(!isFormData && { "Content-Type": "application/json" }),
           },
-          body: JSON.stringify(body),
+          body: isFormData ? body : JSON.stringify(body),
         }
       );
       return handleResponse<T>(response);

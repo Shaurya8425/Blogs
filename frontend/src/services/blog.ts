@@ -35,6 +35,7 @@ export interface Post {
   id: string;
   title: string;
   content: string;
+  imageUrl?: string;
   createdAt?: string;
   updatedAt?: string;
   author: {
@@ -93,8 +94,8 @@ export const blogService = {
     return response.data;
   },
 
-  createPost: async (data: CreatePostData): Promise<Post> => {
-    const response = await api.post<Post>("/blog", data);
+  createPost: async (data: FormData | CreatePostData): Promise<Post> => {
+    const response = await api.post<Post>("/blog", data, data instanceof FormData);
     if (!response.data) {
       throw new Error("Failed to create post");
     }
@@ -102,8 +103,8 @@ export const blogService = {
     return response.data;
   },
 
-  updatePost: async (id: string, data: CreatePostData): Promise<Post> => {
-    const response = await api.put<Post>(`/blog/${id}`, data);
+  updatePost: async (id: string, data: FormData | CreatePostData): Promise<Post> => {
+    const response = await api.put<Post>(`/blog/${id}`, data, data instanceof FormData);
     if (!response.data) {
       throw new Error(`Failed to update post with id ${id}`);
     }

@@ -42,7 +42,12 @@ export const authService = {
         throw new Error("No response data from login");
       }
       localStorage.setItem("token", response.data.token);
-      await queryClient.resetQueries();
+      // Invalidate all queries to refetch with new auth token
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["posts"] }),
+        queryClient.invalidateQueries({ queryKey: ["userPosts"] }),
+        queryClient.invalidateQueries({ queryKey: ["userProfile"] }),
+      ]);
       return response.data;
     } catch (error) {
       localStorage.removeItem("token");
@@ -57,7 +62,12 @@ export const authService = {
         throw new Error("No response data from signup");
       }
       localStorage.setItem("token", response.data.token);
-      await queryClient.resetQueries();
+      // Invalidate all queries to refetch with new auth token
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["posts"] }),
+        queryClient.invalidateQueries({ queryKey: ["userPosts"] }),
+        queryClient.invalidateQueries({ queryKey: ["userProfile"] }),
+      ]);
       return response.data;
     } catch (error) {
       localStorage.removeItem("token");
@@ -67,6 +77,7 @@ export const authService = {
 
   logout: () => {
     localStorage.removeItem("token");
+    // Clear all queries and cache on logout
     queryClient.clear();
   },
 

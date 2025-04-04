@@ -136,8 +136,17 @@ export const PostCard = ({ post, onDelete, onUpvote }: PostCardProps) => {
           )}
         </div>
       </div>
-      <Link to={`/post/${post.id}`}>
+      <Link to={`/post/${post.id}`} className="block">
         <h2 className='text-xl font-semibold mb-2'>{post.title}</h2>
+        {post.imageUrl && (
+          <div className="mb-4">
+            <img
+              src={post.imageUrl}
+              alt={post.title}
+              className="w-full h-[300px] object-cover rounded-lg"
+            />
+          </div>
+        )}
         <p className='text-gray-600'>{post.content}</p>
       </Link>
     </Card>

@@ -14,7 +14,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 
 export const AppRoutes = () => {
   return (
-    <Suspense 
+    <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center">
           <LoadingSpinner size="large" />

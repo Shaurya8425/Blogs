@@ -23,6 +23,8 @@ export const Home = () => {
     queryFn: blogService.getAllPosts,
     enabled: !!user, // Only fetch if user is logged in
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    retry: 1, // Only retry once if the request fails
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
   });
 
   const formatDate = (dateString: string | undefined) => {

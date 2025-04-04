@@ -7,13 +7,16 @@ import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Card } from "../components/ui/card";
 import { toast } from "react-hot-toast";
-import { Pencil } from "lucide-react";
+import { ImagePlus, Pencil } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 
 export const EditPost = () => {
   const { postId } = useParams<{ postId: string }>();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
@@ -31,6 +34,9 @@ export const EditPost = () => {
         }
         setTitle(post.title);
         setContent(post.content);
+        if (post.imageUrl) {
+          setCurrentImageUrl(post.imageUrl);
+        }
       } catch (error) {
         console.error("Error loading post:", error);
         toast.error("Failed to load post");
@@ -43,17 +49,39 @@ export const EditPost = () => {
     loadPost();
   }, [postId, user?.userId, navigate]);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error('Image size should be less than 5MB');
+        return;
+      }
+      setImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setCurrentImageUrl(null); // Clear the current image URL when a new image is selected
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
 
     setIsSubmitting(true);
     try {
-      await blogService.updatePost(postId!, {
-        title: title.trim(),
-        content: content.trim(),
-      });
+      const formData = new FormData();
+      formData.append('title', title.trim());
+      formData.append('content', content.trim());
+      if (image) {
+        formData.append('image', image);
+      }
+
+      await blogService.updatePost(postId!, formData);
       toast.success('Post updated successfully!');
+      navigate(`/post/${postId}`);
     } catch (error) {
       console.error("Error updating post:", error);
       toast.error('Failed to update post');
@@ -118,6 +146,48 @@ export const EditPost = () => {
                 className="w-full min-h-[300px]"
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="image" className="text-sm font-medium text-gray-700">
+                Cover Image (optional)
+              </label>
+              <div className="mt-1 flex items-center gap-4">
+                <label
+                  htmlFor="image-upload"
+                  className="cursor-pointer flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  <ImagePlus className="w-5 h-5" />
+                  <span>{currentImageUrl ? 'Change Image' : 'Choose Image'}</span>
+                </label>
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </div>
+              {(imagePreview || currentImageUrl) && (
+                <div className="mt-4">
+                  <img
+                    src={imagePreview || currentImageUrl || ''}
+                    alt="Preview"
+                    className="max-w-full h-auto rounded-lg max-h-[300px] object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImage(null);
+                      setImagePreview(null);
+                      setCurrentImageUrl(null);
+                    }}
+                    className="mt-2 text-sm text-red-600 hover:text-red-800"
+                  >
+                    Remove image
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-4">
