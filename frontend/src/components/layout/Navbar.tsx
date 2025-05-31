@@ -133,7 +133,7 @@ export const Navbar = () => {
           )}
           <Link
             to='/'
-            className='block px-4 py-2 text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+            className='block bg-blue-600 text-white px-4 py-2 text-base font-medium hover:text-gray-800 hover:bg-gray-50'
             onClick={() => setIsMenuOpen(false)}
           >
             Home
@@ -168,14 +168,14 @@ export const Navbar = () => {
             <>
               <Link
                 to='/login'
-                className='block px-4 py-2 text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                className='block px-4 py-2 text-base font-medium hover:text-gray-800 text-blue-700 hover:bg-gray-50'
                 onClick={() => setIsMenuOpen(false)}
               >
                 Login
               </Link>
               <Link
                 to='/signup'
-                className='block px-4 py-2 text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                className='block px-4 py-2 text-base font-medium text-blue-700 hover:text-gray-800 hover:bg-gray-50'
                 onClick={() => setIsMenuOpen(false)}
               >
                 Sign Up

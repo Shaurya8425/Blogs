@@ -43,7 +43,7 @@ export const Signup = () => {
         </h2>
       </div>
 
-      <div className='mt-4 sm:mx-auto sm:w-full sm:max-w-md'>
+      <div className='mt-4 px-6 sm:mx-auto sm:w-full sm:max-w-md'>
         {/* 👇 Relative container to position the ❌ button */}
         <div className='relative bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10'>
           {/* ❌ Close Button */}

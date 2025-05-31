@@ -211,7 +211,7 @@ export const Home = () => {
         {!user ? (
           <Card className='p-8'>
             <div className='flex flex-col items-center md:items-center md:justify-around md:flex-row'>
-              <img className='w-[45%]' src={design} alt='' />
+              <img className='w-[70%] md:w-[45%]' src={design} alt='' />
               <div className="flex flex-col gap-5">
                 <h2 className='text-7xl font-playfair font-bold mb-4'>Human <br />Stories & Ideas</h2>
                 <p className='font-inter text-gray-600 mb-6'>
