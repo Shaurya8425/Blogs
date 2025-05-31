@@ -439,7 +439,7 @@ export function Profile() {
                 <h3 className="text-2xl font-bold mb-2 hover:text-blue-600">
                   {post.title}
                 </h3>
-                <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center gap-2 mb-4">
                   <Button
                     variant={post.upvotes.some(upvote => upvote.userId === user?.userId) ? "secondary" : "outline"}
                     size="sm"

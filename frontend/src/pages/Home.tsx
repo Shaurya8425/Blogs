@@ -130,7 +130,7 @@ export const Home = () => {
         <p className='text-gray-600 mb-4 line-clamp-3 hover:line-clamp-none transition-all'>
           {post.content}
         </p>
-        <div className='flex justify-between items-center'>
+        <div className='flex gap-2 justify-between items-center'>
           <div className='flex items-center gap-4'>
             <div className='flex flex-col text-sm'>
               <span className='text-gray-500'>
