@@ -402,7 +402,7 @@ export function Profile() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full"
+                    className="border"
                     variant="primary"
                   >
                     {isSubmitting ? (
@@ -443,7 +443,7 @@ export function Profile() {
                   <Button
                     variant={post.upvotes.some(upvote => upvote.userId === user?.userId) ? "secondary" : "outline"}
                     size="sm"
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 border"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleUpvote(post.id);

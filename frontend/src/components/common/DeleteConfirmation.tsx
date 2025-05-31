@@ -1,4 +1,5 @@
 import { Button } from '../ui/button';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface DeleteConfirmationProps {
   onConfirm: () => void;
@@ -50,7 +51,7 @@ export const DeleteConfirmation: React.FC<DeleteConfirmationProps> = ({
             disabled={isLoading}
             className="w-full sm:w-auto bg-red-50 text-red-600 hover:bg-red-100 border-red-200 transition-colors"
           >
-            {isLoading ? 'Deleting...' : 'Delete Post'}
+            {isLoading ? `Deleting` : 'Delete Post'}
           </Button>
         </div>
       </div>

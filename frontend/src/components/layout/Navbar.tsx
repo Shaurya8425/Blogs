@@ -33,8 +33,11 @@ export const Navbar = () => {
         <div className='flex justify-between h-16'>
           {/* Left section */}
           <div className='flex items-center'>
-            <Link to='/' className='text-xl font-bold text-blue-600 hover:text-blue-700 transition-colors'>
-              Blog
+            <Link
+              to='/'
+              className='text-xl font-bold text-blue-600 hover:text-blue-700 transition-colors'
+            >
+              InkFlow
             </Link>
           </div>
 
@@ -42,7 +45,11 @@ export const Navbar = () => {
           {user && (
             <div className='hidden md:flex items-center justify-center flex-1 mx-4'>
               <span className='text-gray-600'>
-                Welcome, <span className='font-medium text-blue-600'>{user.name || 'User'}</span>!
+                Welcome,{" "}
+                <span className='font-medium text-blue-600'>
+                  {user.name || "User"}
+                </span>
+                !
               </span>
             </div>
           )}
@@ -69,7 +76,11 @@ export const Navbar = () => {
                 >
                   Profile
                 </Link>
-                <Button onClick={handleLogout} variant='danger' className='ml-2'>
+                <Button
+                  onClick={handleLogout}
+                  variant='danger'
+                  className='ml-2'
+                >
                   Logout
                 </Button>
               </>
@@ -83,7 +94,7 @@ export const Navbar = () => {
                 </Link>
                 <Link
                   to='/signup'
-                  className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors'
+                  className='inline-flex items-center px-4 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors'
                 >
                   Sign Up
                 </Link>
@@ -109,11 +120,15 @@ export const Navbar = () => {
       </div>
 
       {/* Mobile menu */}
-      <div className={`md:hidden ${isMenuOpen ? 'block' : 'hidden'}`}>
+      <div className={`md:hidden ${isMenuOpen ? "block" : "hidden"}`}>
         <div className='pt-2 pb-3 space-y-1'>
           {user && (
             <div className='px-4 py-2 text-sm text-center text-gray-600 border-b border-gray-200'>
-              Welcome, <span className='font-medium text-blue-600'>{user.name || 'User'}</span>!
+              Welcome,{" "}
+              <span className='font-medium text-blue-600'>
+                {user.name || "User"}
+              </span>
+              !
             </div>
           )}
           <Link

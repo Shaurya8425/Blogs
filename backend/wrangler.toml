@@ -11,7 +11,7 @@ compatibility_date = "2025-03-21"
 [vars]
 DATABASE_URL = "prisma://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlfa2V5IjoiMTY3Y2E5OTUtMmQzNi00YzFiLThmYmUtMzcxMzBlZDgzNGVhIiwidGVuYW50X2lkIjoiNzlmOTljMGI5NWNlNTE3MjE2MTUxMTVlZDExMTdhYWQzZDVhNjFkMDYyMjM1OTQ4OTBjZDdkYWE2NzMwYTJiNCIsImludGVybmFsX3NlY3JldCI6IjAxNDQxMWM1LWY0M2UtNDEwZS04MjljLTNkMjc2Yjk1YzgzZiJ9.irQfreBnu9ZoFEr92mEZj1Dmazg3SO0n5P6Xb4bBKoM"
 DIRECT_URL = "postgresql://mdm-db_owner:npg_pW4Gq2dvNBXM@ep-fancy-pond-a5use75n-pooler.us-east-2.aws.neon.tech/mdm-db?sslmode=require"
-JWT_SECRET = "your_development_jwt_secret_here"
+JWT_SECRET = "5b675b9efb6e980067e2e5549fe02654ad0979e776c826086a579ee8de66bb47"
 R2_ACCOUNT_ID = "6b5d169ca672e590cb8cc3dc0edbbf66"
 R2_ACCESS_KEY_ID = "bc54e0919250e7ff62b3e2015011ca27"
 R2_SECRET_ACCESS_KEY = "daf4b293c5665e21b1993ec2fe66af8b6c1656f1e3c5b976a47ae5ed3e1e3edc"

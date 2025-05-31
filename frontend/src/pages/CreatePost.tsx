@@ -8,6 +8,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Card } from "../components/ui/card";
 import { toast } from "react-hot-toast";
 import { ImagePlus, Pencil } from "lucide-react";
+import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
 export const CreatePost = () => {
   const [title, setTitle] = useState("");
@@ -71,76 +72,85 @@ export const CreatePost = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-3xl mx-auto p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <Pencil className="w-5 h-5" />
-            <h1 className="text-2xl font-bold">Create New Post</h1>
+      <div className='container mx-auto px-4 py-8'>
+        <Card className='max-w-3xl mx-auto p-6'>
+          <div className='flex items-center gap-2 mb-6'>
+            <Pencil className='w-5 h-5' />
+            <h1 className='text-2xl font-bold'>Create New Post</h1>
           </div>
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label htmlFor="title" className="text-sm font-medium text-gray-700">
+
+          <form onSubmit={handleSubmit} className='space-y-6'>
+            <div className='space-y-2'>
+              <label
+                htmlFor='title'
+                className='text-sm font-medium text-gray-700'
+              >
                 Title
               </label>
               <Input
-                id="title"
+                id='title'
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter your post title"
-                className="w-full"
+                placeholder='Enter your post title'
+                className='w-full'
                 required
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="content" className="text-sm font-medium text-gray-700">
+            <div className='space-y-2'>
+              <label
+                htmlFor='content'
+                className='text-sm font-medium text-gray-700'
+              >
                 Content
               </label>
               <Textarea
-                id="content"
+                id='content'
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Write your post content here..."
-                className="w-full min-h-[300px]"
+                placeholder='Write your post content here...'
+                className='w-full min-h-[300px]'
                 required
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="image" className="text-sm font-medium text-gray-700">
+            <div className='space-y-2'>
+              <label
+                htmlFor='image'
+                className='text-sm font-medium text-gray-700'
+              >
                 Cover Image (optional)
               </label>
-              <div className="mt-1 flex items-center gap-4">
+              <div className='mt-1 flex items-center gap-4'>
                 <label
-                  htmlFor="image-upload"
-                  className="cursor-pointer flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                  htmlFor='image-upload'
+                  className='cursor-pointer flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50'
                 >
-                  <ImagePlus className="w-5 h-5" />
+                  <ImagePlus className='w-5 h-5' />
                   <span>Choose Image</span>
                 </label>
                 <input
-                  id="image-upload"
-                  type="file"
-                  accept="image/*"
+                  id='image-upload'
+                  type='file'
+                  accept='image/*'
                   onChange={handleImageChange}
-                  className="hidden"
+                  className='hidden'
                 />
               </div>
               {imagePreview && (
-                <div className="mt-4">
+                <div className='mt-4'>
                   <img
                     src={imagePreview}
-                    alt="Preview"
-                    className="max-w-full h-auto rounded-lg max-h-[300px] object-cover"
+                    alt='Preview'
+                    className='max-w-full h-auto rounded-lg max-h-[300px] object-cover'
                   />
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => {
                       setImage(null);
                       setImagePreview(null);
                     }}
-                    className="mt-2 text-sm text-red-600 hover:text-red-800"
+                    className='mt-2 text-sm text-red-600 hover:text-red-800'
                   >
                     Remove image
                   </button>
@@ -148,26 +158,26 @@ export const CreatePost = () => {
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-4">
+            <div className='flex items-center justify-end gap-4'>
               <Button
-                type="button"
-                variant="outline"
+                type='button'
+                variant='outline'
                 onClick={() => navigate(-1)}
               >
                 Cancel
               </Button>
               <Button
-                type="submit"
+                type='submit'
                 disabled={isSubmitting || !title.trim() || !content.trim()}
-                className="min-w-[100px]"
+                className='min-w-[100px] border'
               >
                 {isSubmitting ? (
                   <>
                     <span className="mr-2">Creating</span>
-                    <span className="animate-spin">⚪</span>
+                    <LoadingSpinner size="small" />
                   </>
                 ) : (
-                  'Create Post'
+                  "Create Post"
                 )}
               </Button>
             </div>

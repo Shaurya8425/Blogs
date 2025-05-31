@@ -8,6 +8,7 @@ import { Card } from "../components/ui/card";
 import { Textarea } from "../components/ui/textarea";
 import { ThumbsUp, MessageCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
 export const PostDetail = () => {
   const { postId } = useParams<{ postId: string }>();
@@ -213,16 +214,15 @@ export const PostDetail = () => {
                     <Button
                       type="submit"
                       disabled={isSubmitting || !replyContent.trim()}
-                      className="flex items-center gap-2 w-full sm:w-auto justify-center"
+                      className="flex items-center gap-2 w-full sm:w-auto justify-center border"
                     >
                       {isSubmitting ? (
                         <>
                           <span className="mr-2">Posting</span>
-                          <span className="animate-spin">⚪</span>
+                          <LoadingSpinner size="small"/>
                         </>
                       ) : (
                         <>
-                          <MessageCircle className="w-4 h-4" />
                           Post Reply
                         </>
                       )}
@@ -247,7 +247,7 @@ export const PostDetail = () => {
                             <Button
                               variant="secondary"
                               size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full sm:w-auto justify-center"
+                              className="text-red-600 border hover:text-red-700 hover:bg-red-50 w-full sm:w-auto justify-center"
                               onClick={() => handleDeleteReply(reply.id)}
                             >
                               Delete

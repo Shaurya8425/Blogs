@@ -11,6 +11,8 @@ import { ThumbsUp } from "lucide-react";
 import { Card } from "../components/ui/card";
 import { LoadingSpinner } from "../components/common/LoadingSpinner"; // Import LoadingSpinner component
 
+import design from "../imges/hero-design.png";
+
 export const Home = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
   const navigate = useNavigate();
@@ -119,29 +121,29 @@ export const Home = () => {
     return (
       <Card
         key={post.id}
-        className="p-6 mb-4 hover:shadow-lg transition-all duration-200 cursor-pointer bg-white border border-gray-200"
+        className='p-6 mb-4 hover:shadow-lg transition-all duration-200 cursor-pointer bg-white border border-gray-200'
         onClick={() => navigate(`/post/${post.id}`)}
       >
-        <h2 className="text-2xl font-bold mb-2 line-clamp-2 hover:line-clamp-none transition-all">
+        <h2 className='text-2xl font-bold mb-2 line-clamp-2 hover:line-clamp-none transition-all'>
           {post.title}
         </h2>
-        <p className="text-gray-600 mb-4 line-clamp-3 hover:line-clamp-none transition-all">
+        <p className='text-gray-600 mb-4 line-clamp-3 hover:line-clamp-none transition-all'>
           {post.content}
         </p>
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col text-sm">
-              <span className="text-gray-500">
+        <div className='flex justify-between items-center'>
+          <div className='flex items-center gap-4'>
+            <div className='flex flex-col text-sm'>
+              <span className='text-gray-500'>
                 By {post.author?.name || "Unknown"}
               </span>
-              <span className="text-gray-400 text-xs">
+              <span className='text-gray-400 text-xs'>
                 {formatDate(post.createdAt)}
               </span>
             </div>
             <Button
               variant={hasUpvoted ? "secondary" : "outline"}
-              size="sm"
-              className="flex items-center gap-1"
+              size='sm'
+              className='flex items-center gap-1 border'
               onClick={(e) => {
                 e.stopPropagation();
                 handleUpvote(post.id);
@@ -154,11 +156,11 @@ export const Home = () => {
             </Button>
           </div>
           {isAuthor && (
-            <div className="flex items-center gap-2">
+            <div className='flex items-center gap-2'>
               <Button
-                variant="outline"
-                size="sm"
-                className="hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                variant='outline'
+                size='sm'
+                className='hover:bg-blue-50 hover:text-blue-600 transition-colors'
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/post/${post.id}/edit`);
@@ -167,8 +169,8 @@ export const Home = () => {
                 Edit
               </Button>
               <Button
-                variant="danger"
-                size="sm"
+                variant='danger'
+                size='sm'
                 onClick={(e) => {
                   e.stopPropagation();
                   openDeleteConfirm(e, post);
@@ -186,8 +188,8 @@ export const Home = () => {
   if (isAuthLoading) {
     return (
       <MainLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <LoadingSpinner size="large" />
+        <div className='min-h-screen flex items-center justify-center'>
+          <LoadingSpinner size='large' />
         </div>
       </MainLayout>
     );
@@ -196,8 +198,8 @@ export const Home = () => {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <LoadingSpinner size="large" />
+        <div className='min-h-screen flex items-center justify-center'>
+          <LoadingSpinner size='large' />
         </div>
       </MainLayout>
     );
@@ -205,21 +207,29 @@ export const Home = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className='container mx-auto px-4 py-8'>
         {!user ? (
-          <Card className="p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">Welcome to sForStudy Blogs</h2>
-            <p className="text-gray-600 mb-6">
-              Please log in to access the blog posts and interact with the
-              community.
-            </p>
-            <Button variant="primary" onClick={() => navigate("/login")}>
-              Log In to Continue
-            </Button>
+          <Card className='p-8'>
+            <div className='flex flex-col items-center md:items-center md:justify-around md:flex-row'>
+              <img className='w-[45%]' src={design} alt='' />
+              <div className="flex flex-col gap-5">
+                <h2 className='text-7xl font-playfair font-bold mb-4'>Human <br />Stories & Idea</h2>
+                <p className='font-inter text-gray-600 mb-6'>
+                  your space to write, connect, and share stories
+                </p>
+                <Button
+                  className='border w-1/3'
+                  variant='primary'
+                  onClick={() => navigate("/login")}
+                >
+                  Log In to Continue
+                </Button>
+              </div>
+            </div>
           </Card>
         ) : (
           <>
-            <div className="space-y-6">
+            <div className='space-y-6'>
               {posts.map((post) => renderPost(post))}
             </div>
             {showDeleteConfirm && (
