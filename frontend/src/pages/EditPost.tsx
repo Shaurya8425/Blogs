@@ -9,6 +9,7 @@ import { Card } from "../components/ui/card";
 import { toast } from "react-hot-toast";
 import { ImagePlus, Pencil } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
+import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
 export const EditPost = () => {
   const { postId } = useParams<{ postId: string }>();
@@ -201,12 +202,12 @@ export const EditPost = () => {
               <Button
                 type="submit"
                 disabled={isSubmitting || !title.trim() || !content.trim()}
-                className="min-w-[100px]"
+                className="min-w-[100px] border"
               >
                 {isSubmitting ? (
                   <>
                     <span className="mr-2">Saving</span>
-                    <span className="animate-spin">⚪</span>
+                    <LoadingSpinner size="small"/>
                   </>
                 ) : (
                   'Save Changes'
