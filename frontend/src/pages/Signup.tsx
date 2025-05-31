@@ -49,10 +49,22 @@ export const Signup = () => {
           {/* ❌ Close Button */}
           <button
             onClick={() => navigate("/")}
-            className='absolute -top-3 -right-3 bg-white border border-gray-300 rounded-full p-1 shadow hover:bg-gray-100 transition'
+            className='absolute -top-3 -right-3 bg-red-100 border border-gray-300 h-12 w-12 flex items-center justify-center rounded-full p-1 shadow hover:bg-red-50 transition'
             aria-label='Close'
           >
-            <X className='w-4 h-4 text-gray-700' />
+            <svg
+              className='w-6 h-6 text-red-600'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M6 18L18 6M6 6l12 12'
+              />
+            </svg>
           </button>
 
           <form className='space-y-6' onSubmit={handleSubmit}>
