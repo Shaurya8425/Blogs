@@ -9,16 +9,16 @@ import { Button } from "../components/ui/button";
 import { DeleteConfirmation } from "../components/common/DeleteConfirmation";
 import { ThumbsUp } from "lucide-react";
 import { Card } from "../components/ui/card";
-import { LoadingSpinner } from "../components/common/LoadingSpinner"; // Import LoadingSpinner component
+import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
 import design from "../imges/hero-design.png";
 
 export const Home = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["posts"],
@@ -215,7 +215,7 @@ export const Home = () => {
               <div className="flex flex-col gap-5">
                 <h2 className='text-7xl font-playfair font-bold mb-4'>Human <br />Stories & Ideas</h2>
                 <p className='font-inter text-gray-600 mb-6'>
-                  your space to write, connect, and share stories
+                  your space to write, connect, and share stories
                 </p>
                 <Button
                   className='border w-1/2'

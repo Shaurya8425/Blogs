@@ -150,7 +150,7 @@ export const CreatePost = () => {
                       setImage(null);
                       setImagePreview(null);
                     }}
-                    className='mt-2 text-sm text-red-600 hover:text-red-800'
+                    className='border rounded p-1 mt-2 text-sm text-red-600 hover:text-red-700'
                   >
                     Remove image
                   </button>

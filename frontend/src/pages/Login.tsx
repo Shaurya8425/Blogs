@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "../components/common/Input";
 import { useAuth } from "../hooks/useAuth";
+import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -31,12 +32,12 @@ const Login = () => {
   return (
     <div className='min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8'>
       <div className='sm:mx-auto sm:w-full sm:max-w-md'>
-        <h2 className='mt-6 text-center text-3xl font-inter font-extrabold text-gray-900'>
+        <h2 className='mt-6 text-center text-4xl font-inter font-extrabold text-gray-900'>
           Sign in to your account
         </h2>
       </div>
 
-      <div className='mt-8 sm:mx-auto sm:w-full sm:max-w-md'>
+      <div className='mt-4 sm:mx-auto sm:w-full sm:max-w-md'>
         <div className='bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10'>
           <form className='space-y-6' onSubmit={handleSubmit}>
             <Input
@@ -72,7 +73,14 @@ const Login = () => {
                   ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
                 `}
               >
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading ? (
+                  <div className='bg-white px-1 rounded text-black flex items-center gap-2'>
+                    Signing
+                    <LoadingSpinner size="small"/>
+                  </div>
+                ) : (
+                  "Sign in"
+                )}
               </button>
             </div>
           </form>

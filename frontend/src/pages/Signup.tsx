@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "../components/common/Input";
 import { authService, SignupData } from "../services/auth";
 import { useAuth } from "../hooks/useAuth";
+import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
 export const Signup = () => {
   const navigate = useNavigate();
@@ -36,12 +37,12 @@ export const Signup = () => {
   return (
     <div className='min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8'>
       <div className='sm:mx-auto sm:w-full sm:max-w-md'>
-        <h2 className='mt-6 text-center text-3xl font-inter font-extrabold text-gray-900'>
+        <h2 className='mt-6 text-center text-4xl font-inter font-extrabold text-gray-900'>
           Create your account
         </h2>
       </div>
 
-      <div className='mt-8 sm:mx-auto sm:w-full sm:max-w-md'>
+      <div className='mt-4 sm:mx-auto sm:w-full sm:max-w-md'>
         <div className='bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10'>
           <form className='space-y-6' onSubmit={handleSubmit}>
             <Input
@@ -87,7 +88,14 @@ export const Signup = () => {
                   ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
                 `}
               >
-                {isLoading ? "Creating account..." : "Create account"}
+                {isLoading ? (
+                  <div className='bg-white px-1 rounded text-black flex items-center gap-2'>
+                    Creating
+                    <LoadingSpinner size='small' />
+                  </div>
+                ) : (
+                  "Create Account"
+                )}
               </button>
             </div>
           </form>
