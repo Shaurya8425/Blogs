@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "../components/common/Input";
 import { useAuth } from "../hooks/useAuth";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
+import { X } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -38,7 +39,17 @@ const Login = () => {
       </div>
 
       <div className='mt-4 sm:mx-auto sm:w-full sm:max-w-md'>
-        <div className='bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10'>
+        {/* 👇 Relative container for the X button positioning */}
+        <div className='relative bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10'>
+          {/* ❌ Close Button */}
+          <button
+            onClick={() => navigate("/")}
+            className='absolute -top-3 -right-3 bg-white border border-gray-300 rounded-full p-1 shadow hover:bg-gray-100 transition'
+            aria-label='Close'
+          >
+            <X className='w-4 h-4 text-gray-700' />
+          </button>
+
           <form className='space-y-6' onSubmit={handleSubmit}>
             <Input
               label='Email address'
@@ -66,17 +77,14 @@ const Login = () => {
               <button
                 type='submit'
                 disabled={isLoading}
-                className={`
-                  w-full flex justify-center py-2 px-4 border border-transparent rounded-md
-                  shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700
-                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-                  ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
-                `}
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 {isLoading ? (
                   <div className='bg-white px-1 rounded text-black flex items-center gap-2'>
                     Signing
-                    <LoadingSpinner size="small"/>
+                    <LoadingSpinner size='small' />
                   </div>
                 ) : (
                   "Sign in"
@@ -85,10 +93,10 @@ const Login = () => {
             </div>
           </form>
 
-          <div className='relative'>
+          <div className='relative mt-6'>
             <div className='relative flex justify-center text-sm'>
               <span className='px-2 bg-white text-gray-500'>
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <button
                   onClick={() => navigate("/signup")}
                   className='font-medium text-blue-600 hover:text-blue-500'

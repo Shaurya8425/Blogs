@@ -4,6 +4,7 @@ import { Input } from "../components/common/Input";
 import { authService, SignupData } from "../services/auth";
 import { useAuth } from "../hooks/useAuth";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
+import { X } from "lucide-react";
 
 export const Signup = () => {
   const navigate = useNavigate();
@@ -43,7 +44,17 @@ export const Signup = () => {
       </div>
 
       <div className='mt-4 sm:mx-auto sm:w-full sm:max-w-md'>
-        <div className='bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10'>
+        {/* 👇 Relative container to position the ❌ button */}
+        <div className='relative bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10'>
+          {/* ❌ Close Button */}
+          <button
+            onClick={() => navigate("/")}
+            className='absolute -top-3 -right-3 bg-white border border-gray-300 rounded-full p-1 shadow hover:bg-gray-100 transition'
+            aria-label='Close'
+          >
+            <X className='w-4 h-4 text-gray-700' />
+          </button>
+
           <form className='space-y-6' onSubmit={handleSubmit}>
             <Input
               label='Full Name'
@@ -81,12 +92,9 @@ export const Signup = () => {
               <button
                 type='submit'
                 disabled={isLoading}
-                className={`
-                  w-full flex justify-center py-2 px-4 border border-transparent rounded-md
-                  shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700
-                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-                  ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
-                `}
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 {isLoading ? (
                   <div className='bg-white px-1 rounded text-black flex items-center gap-2'>
@@ -100,7 +108,7 @@ export const Signup = () => {
             </div>
           </form>
 
-          <div className='relative'>
+          <div className='relative mt-6'>
             <div className='relative flex justify-center text-sm'>
               <span className='px-2 bg-white text-gray-500'>
                 Already have an account?{" "}
