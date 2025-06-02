@@ -127,7 +127,7 @@ export const Home = () => {
         <h2 className='text-2xl font-bold mb-2 line-clamp-2 hover:line-clamp-none transition-all'>
           {post.title}
         </h2>
-        <p className='text-gray-600 mb-4 line-clamp-3 hover:line-clamp-none transition-all'>
+        <p className='text-gray-600 mb-4 line-clamp-2 transition-all'>
           {post.content}
         </p>
         <div className='flex gap-2 justify-between items-center'>

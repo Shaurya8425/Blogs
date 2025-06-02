@@ -1,4 +1,4 @@
-import { ApiResponse, ApiError } from "../types/api";
+import { ApiResponse } from "../types/api";
 
 // Use environment variable for backend URL with a fallback
 const BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8787/api/v1";
